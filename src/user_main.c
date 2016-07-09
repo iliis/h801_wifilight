@@ -7,7 +7,7 @@
 //#include "driver/uart.h"
 
 #include "user_config.h"
-
+#include "ntp.h"
 
 static volatile os_timer_t some_timer;
 
@@ -56,7 +56,8 @@ void wifi_callback( System_Event_t *evt )
                     IP2STR(&evt->event_info.got_ip.gw));
             os_printf("\n");
 
-            //espconn_gethostbyname( &dweet_conn, dweet_host, &dweet_ip, dns_done );
+            // initialize NPT as soon as we have a working connection
+            NTPinit();
             break;
 
         default:
@@ -130,7 +131,7 @@ user_init()
     };
 
     //Set station mode
-    wifi_set_opmode( 0x1 );
+    wifi_set_opmode(STATION_MODE); // client instead of SOFTAP or STATIONAP
 
     //Set ap settings
     wifi_station_set_config(&stationConf);
@@ -158,7 +159,8 @@ user_init()
     //&some_timer is the pointer
     //1000 is the fire time in ms
     //0 for once and 1 for repeating
-    os_timer_arm(&some_timer, 1000, 1);
+    //os_timer_arm(&some_timer, 1000, 1);
+    os_timer_arm(&some_timer, 1000*2, 1);
 
     ///////////////////////////////////////////////////////////////////////////
     // START SERVER
