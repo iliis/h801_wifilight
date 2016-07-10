@@ -4,14 +4,7 @@
  * from https://raw.githubusercontent.com/PaulStoffregen/Time/master/examples/TimeNTP_ESP8266WiFi/TimeNTP_ESP8266WiFi.ino
  */
 
-#include <ets_sys.h>
-#include <osapi.h>
-#include <os_type.h>
-#include <user_interface.h>
-#include <espconn.h>
-#include <ip_addr.h>
-
-#include "simpletime.h"
+#include "ntp.h"
 
 // NTP Servers:
 static const char ntpServerName[] = "ch.pool.ntp.org";
@@ -178,6 +171,8 @@ void ICACHE_FLASH_ATTR sendNTPpacket()
 // number of seconds between 1900 and 1970
 #define DIFF_SEC_1900_1970 (2208988800UL)
 
+int64_t RTCdelta = INT64_MAX; // difference between RTC and unixtime (unixtime = RTC() + delta)
+
 void ICACHE_FLASH_ATTR ntp_rx_packet(void * arg, char* data, unsigned short len)
 {
     struct espconn * conn = (struct espconn *) arg;
@@ -205,6 +200,19 @@ void ICACHE_FLASH_ATTR ntp_rx_packet(void * arg, char* data, unsigned short len)
     simple_localtime(t, &tm);
 
     os_printf("[NTP] current time: %02d:%02d.%02d UTC\n", tm.Hour, tm.Minute, tm.Second);
+
+    uint32 rtc = system_get_rtc_time();
+    uint32 rtc_us = system_rtc_clock_cali_proc(); // us per RTC cycle
+
+    uint64 localt = rtc;
+    localt *= rtc_us >> 12;
+    localt /= 1000*1000; // convert to seconds
+
+    RTCdelta = ((int64_t) t) - localt;
+
+    os_printf("[NTP] raw system time: %lu ticks -> %lu s\n", rtc, localt);
+    os_printf("[NTP] delta: %ld (%lu us/tick)\n", RTCdelta, rtc_us);
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -223,6 +231,45 @@ void reboot_timer_cb(void * arg)
 {
     os_printf("REBOOTING!\n");
     system_restart();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+time_t * ICACHE_FLASH_ATTR getLocalTime()
+{
+    static time_t t;
+
+    if (RTCdelta == INT64_MAX) {
+        // local time not set yet
+        return NULL;
+    }
+
+    uint32 rtc = system_get_rtc_time();
+    uint32 rtc_us = system_rtc_clock_cali_proc(); // us per RTC cycle
+
+    uint64 localt = rtc;
+    localt *= rtc_us >> 12;
+    localt /= 1000*1000; // convert to seconds
+
+    t = RTCdelta + localt;
+    return &t;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+static volatile os_timer_t print_time_timer;
+void print_time(void * arg)
+{
+    time_t * t = getLocalTime();
+
+    if (!t)
+        return;
+
+    tmElements_t tm;
+    simple_localtime(*t, &tm);
+
+    os_printf("[time] local time: %02d:%02d.%02d UTC %d.%d.%d\n",
+            tm.Hour, tm.Minute, tm.Second, tm.Day, tm.Month, 1970+(int)tm.Year);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -259,7 +306,11 @@ void ICACHE_FLASH_ATTR NTPinit()
     // periodically call ntp_update()
     os_timer_disarm(&ntp_update_timer);
     os_timer_setfn(&ntp_update_timer, ntp_update, NULL);
-    os_timer_arm(&ntp_update_timer, 2000, 1); // repeat every other second
+    os_timer_arm(&ntp_update_timer, 10*1000, 1);
+
+    // print local time
+    os_timer_setfn(&print_time_timer, print_time, NULL);
+    os_timer_arm(&print_time_timer, 1000, 1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
