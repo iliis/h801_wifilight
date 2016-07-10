@@ -99,11 +99,8 @@ void ICACHE_FLASH_ATTR NTP_start_name_lookup()
 // NTP
 ////////////////////////////////////////////////////////////////////////////////
 
-struct espconn ntp_rx_connection;
-esp_udp ntp_udp_rx_connection;
-
-struct espconn ntp_tx_connection;
-esp_udp ntp_udp_tx_connection;
+struct espconn ntp_connection;
+esp_udp ntp_udp_connection;
 
 #define NTP_PACKET_SIZE 48 // NTP time is in the first 48 bytes of message
 uint8 packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming & outgoing packets
@@ -133,37 +130,25 @@ void ICACHE_FLASH_ATTR sendNTPpacket()
     // all NTP fields have been given values, now
     // you can send a packet requesting a timestamp:
 
-    // we need a new connection, cannot use receiving one
     // destination IP and port need to be set before every call to
     // espconn_send() according to some example code I found...
-
-    // set up connections
-    /*
-    memset(&ntp_tx_connection,     0, sizeof(ntp_tx_connection));
-    memset(&ntp_udp_tx_connection, 0, sizeof(ntp_udp_tx_connection));
-
-    ntp_tx_connection.type  = ESPCONN_UDP;
-    ntp_tx_connection.state = ESPCONN_NONE;
-    ntp_tx_connection.proto.udp = &ntp_udp_tx_connection;
-    ntp_tx_connection.proto.udp->local_port = localPort+1;
-    memcpy(ntp_tx_connection.proto.udp->remote_ip, &ntpServerIP.addr, 4);
-    ntp_tx_connection.proto.udp->remote_port = 123; // NTP requests are to port 123
-    */
-    memcpy(ntp_rx_connection.proto.udp->remote_ip, &ntpServerIP.addr, 4);
-    ntp_rx_connection.proto.udp->remote_port = 123; // NTP requests are to port 123
+    memcpy(ntp_connection.proto.udp->remote_ip, &ntpServerIP.addr, 4);
+    ntp_connection.proto.udp->remote_port = 123; // NTP requests are to port 123
 
     // actually send the packet
-    /*
-    if (espconn_create(&ntp_rx_connection))
-    {
-        os_printf("[NTP] transmit packet: failed to create() connection.\n");
-        return;
-    }
-    */
-    int r = espconn_send(&ntp_rx_connection, packetBuffer, NTP_PACKET_SIZE);
-    //espconn_delete(&ntp_rx_connection);
+    // (dont' call espconn_create()!)
+    int r = espconn_send(&ntp_connection, packetBuffer, NTP_PACKET_SIZE);
 
-    os_printf("[NTP] send NTP request to "IPSTR" (ret: %d)\n", IP2STR(ntp_rx_connection.proto.udp->remote_ip), r);
+    os_printf("[NTP] send NTP request to "IPSTR" (ret: %d)\n", IP2STR(ntp_connection.proto.udp->remote_ip), r);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+static volatile os_timer_t ntp_timeout_timer;
+
+void ntp_timeout(void *arg)
+{
+    os_printf("[NTP] ERROR: NTP request timeout\n");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -284,24 +269,26 @@ void ICACHE_FLASH_ATTR NTPinit()
     NTP_start_name_lookup();
 
     // set up connections
-    memset(&ntp_rx_connection,     0, sizeof(ntp_rx_connection));
-    memset(&ntp_udp_rx_connection, 0, sizeof(ntp_udp_rx_connection));
+    memset(&ntp_connection,     0, sizeof(ntp_connection));
+    memset(&ntp_udp_connection, 0, sizeof(ntp_udp_connection));
 
-    ntp_rx_connection.type  = ESPCONN_UDP;
-    ntp_rx_connection.state = ESPCONN_NONE;
-    ntp_rx_connection.proto.udp = &ntp_udp_rx_connection;
-    ntp_rx_connection.proto.udp->local_port = localPort;
+    ntp_connection.type  = ESPCONN_UDP;
+    ntp_connection.state = ESPCONN_NONE;
+    ntp_connection.proto.udp = &ntp_udp_connection;
+    ntp_connection.proto.udp->local_port = localPort;
 
-    if (espconn_create(&ntp_rx_connection)) {
+    if (espconn_create(&ntp_connection)) {
         os_printf("[NTP] ERROR: cannot create() connection.\n");
         return;
     }
 
-    os_printf("[NTP] listening to UDP packets on port %d\n", ntp_rx_connection.proto.udp->local_port);
-    espconn_regist_recvcb(&ntp_rx_connection, ntp_rx_packet);
+    os_printf("[NTP] listening to UDP packets on port %d\n", ntp_connection.proto.udp->local_port);
 
     // start listening for UDP packets
-    //espconn_accept(&ntp_rx_connection);
+    espconn_regist_recvcb(&ntp_connection, ntp_rx_packet);
+
+    // don't call that!
+    //espconn_accept(&ntp_connection);
 
     // periodically call ntp_update()
     os_timer_disarm(&ntp_update_timer);
