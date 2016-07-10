@@ -43,7 +43,8 @@ flags = [
 '-Wno-variadic-macros',
 '-fexceptions',
 '-nostdlib',
-'-DICACHE_FLASH_ATTR=""',
+#'-DICACHE_FLASH_ATTR=""',
+'-Dos_printf_plus(...)=do{}while(0)',
 '-DNDEBUG',
 # THIS IS IMPORTANT! Without a "-std=<something>" flag, clang won't know which
 # language to use when compiling headers. So it will guess. Badly. So C++
@@ -64,6 +65,8 @@ flags = [
 '.',
 '-I',
 './src/',
+'-I',
+'./include/',
 ]
 
 

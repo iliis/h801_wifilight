@@ -2,3 +2,4 @@
 *.bin
 build/
 firmware/
+src/user_config.h

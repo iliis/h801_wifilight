@@ -27,8 +27,10 @@ SDK_BASE	?= /home/samuel/programme/esp-open-sdk/sdk
 
 # esptool.py path and port
 ESPTOOL		?= /usr/bin/esptool.py
-ESPPORT		?= /dev/ttyUSB5
+ESPPORT		?= /dev/ttyUSB0
 ESPBAUD		?= 912600
+#ESPBAUD		?= 230400
+#ESPBAUD		?= 115200
 
 # name for the target project
 TARGET		= app

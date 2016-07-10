@@ -296,8 +296,8 @@ void ICACHE_FLASH_ATTR NTPinit()
     os_timer_arm(&ntp_update_timer, 10*1000, 1);
 
     // print local time
-    os_timer_setfn(&print_time_timer, print_time, NULL);
-    os_timer_arm(&print_time_timer, 1000, 1);
+    //os_timer_setfn(&print_time_timer, print_time, NULL);
+    //os_timer_arm(&print_time_timer, 1000, 1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -8,6 +8,7 @@
 
 #include "user_config.h"
 #include "ntp.h"
+#include "led_server.h"
 
 static volatile os_timer_t some_timer;
 
@@ -56,8 +57,10 @@ void wifi_callback( System_Event_t *evt )
                     IP2STR(&evt->event_info.got_ip.gw));
             os_printf("\n");
 
+            LED_set(0,255,0,0,0); // green: connected
+
             // initialize NPT as soon as we have a working connection
-            NTPinit();
+            //NTPinit();
             break;
 
         default:
@@ -106,13 +109,17 @@ void ICACHE_FLASH_ATTR server_accept_connect_cb(void * arg)
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+extern void __real_system_restart_local();
+
+
+typedef void (*voidfunc_t)(void);
 
 //Init function 
 void ICACHE_FLASH_ATTR
 user_init()
 {
     // Configure the UART
-    uart_init(4*115200, 115200);
+    uart_init(115200, 115200);
     // enable system messages
 
     //uart_init(115200, 115200);
@@ -121,6 +128,10 @@ user_init()
     UART_SetPrintPort(1);
     system_set_os_print(1);
 
+    ///////////////////////////////////////////////////////////////////////////
+    // RGB LED output
+
+    LED_init();
 
     ///////////////////////////////////////////////////////////////////////////
     // CONNECT
@@ -189,4 +200,11 @@ user_init()
     espconn_regist_time(&server_connection, 15, 0);
 
     ///////////////////////////////////////////////////////////////////////////
+
+    LED_server_start(444);
+
+    // this doesn't, it *does* boot into bootloader but then flashing fails
+    //os_printf("RESTARTING!\n");
+    //uart_init(8*115200, 8*115200); // set UART to 912600 baud
+    //system_restart();
 }
