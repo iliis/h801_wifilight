@@ -27,7 +27,7 @@ SDK_BASE	?= /home/samuel/programme/esp-open-sdk/sdk
 
 # esptool.py path and port
 ESPTOOL		?= /usr/bin/esptool.py
-ESPPORT		?= /dev/ttyUSB0
+ESPPORT		?= /dev/ttyUSB5
 ESPBAUD		?= 912600
 #ESPBAUD		?= 230400
 #ESPBAUD		?= 115200
@@ -134,6 +134,7 @@ $(FW_BASE):
 	$(Q) mkdir -p $@
 
 flash: $(FW_FILE_1) $(FW_FILE_2)
+	-killall minicom
 	$(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
 
 clean:

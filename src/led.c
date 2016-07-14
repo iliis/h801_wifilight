@@ -72,6 +72,11 @@ void ICACHE_FLASH_ATTR LED_set_arr(uint8_t rgbww[5])
         //os_printf("[LED] setting channel %d to %ld\n", channel, gamma_table[rgbww[channel]]);
     }
     pwm_start();
+
+    /*
+    os_printf("[LED] set arr: %d %d %d - %d %d\n",
+            rgbww[0], rgbww[1], rgbww[2], rgbww[3], rgbww[4]);
+            */
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -88,7 +93,7 @@ void ICACHE_FLASH_ATTR LED_init()
     gpio_output_set(LED2PIN,    0, LED2PIN,     0); // output, high-active
     */
 
-    uint32 pwm_duty_init[PWM_CHANNEL_COUNT] = { 1024, 0,0,0,0 }; // default: RED
+    uint32 pwm_duty_init[PWM_CHANNEL_COUNT] = { 0,0,0,0,0 }; // default: OFF
 
     os_printf("[PWM] initializing...\n");
     //set_pwm_debug_en(1); // output system messages from PWM library

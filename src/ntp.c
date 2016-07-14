@@ -140,6 +140,9 @@ void ICACHE_FLASH_ATTR sendNTPpacket()
     int r = espconn_send(&ntp_connection, packetBuffer, NTP_PACKET_SIZE);
 
     os_printf("[NTP] send NTP request to "IPSTR" (ret: %d)\n", IP2STR(ntp_connection.proto.udp->remote_ip), r);
+
+    //Set GPIO2 to LOW
+    gpio_output_set(0, BIT5, BIT5, 0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -149,6 +152,9 @@ static volatile os_timer_t ntp_timeout_timer;
 void ntp_timeout(void *arg)
 {
     os_printf("[NTP] ERROR: NTP request timeout\n");
+
+    //Set GPIO2 to HIGH
+    gpio_output_set(BIT5, 0, BIT5, 0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -193,11 +199,16 @@ void ICACHE_FLASH_ATTR ntp_rx_packet(void * arg, char* data, unsigned short len)
     localt *= rtc_us >> 12;
     localt /= 1000*1000; // convert to seconds
 
+    // TODO: limit change in RTCdelta if already initialized (to prevent too exreme jumps in time)
     RTCdelta = ((int64_t) t) - localt;
 
     os_printf("[NTP] raw system time: %lu ticks -> %lu s\n", rtc, localt);
     os_printf("[NTP] delta: %ld (%lu us/tick)\n", RTCdelta, rtc_us);
 
+    // TODO: ouput status on LED (if this is the first valid time)
+
+    //Set GPIO2 to HIGH (LED off)
+    gpio_output_set(BIT5, 0, BIT5, 0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
