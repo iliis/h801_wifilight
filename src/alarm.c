@@ -41,7 +41,7 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
 
     if (IS_CMD("help")) {
         RESPONSE(
-                //"led $r $g $b $w1 $w2   - set LED fix color\n" // TODO
+                "led $r $g $b $w1 $w2   - set LED fix color\n" // TODO
                 "status             - show time and currently set alarm\n"
                 "set_tz $offset     - set timezone offset relative to UTC\n"
                 "set_alarm $h $m    - arm alarm\n"
@@ -107,6 +107,27 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
     } else if (IS_CMD("clr_alarm")) {
         current_alarm_time = 0;
         RESPONSE("alarm disarmed");
+
+    } else if (IS_CMD("led")) {
+
+        uint8_t rgbww[5] = {0,0,0, 0,0};
+
+        // parse max 5 color parameters
+        char * rd_ptr = &inputstr[3];
+        size_t i = 0;
+        for (; i < sizeof(rgbww); i++) {
+            char * next_ptr;
+            uint8_t v = strtol(rd_ptr, &next_ptr, 0);
+            if (next_ptr == rd_ptr) {
+                // no chars parsed
+                break;
+            }
+            rd_ptr = next_ptr;
+
+            rgbww[i] = v;
+        }
+        LED_set_arr(rgbww);
+        RESPONSE("new color: %02x:%02x:%02x:%02x:%02x", rgbww[0], rgbww[1], rgbww[2], rgbww[3],rgbww[4]);
 
     } else if (IS_CMD("quit")) {
         espconn_disconnect(conn);
