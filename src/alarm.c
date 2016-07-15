@@ -30,6 +30,7 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
     trimwhitespace(inputstr, sizeof(inputstr), data);
 
     #define IS_CMD(str) (strncmp(inputstr, (str), MIN(strlen((str)), len)) == 0)
+    #define IS_CHAR_CMD(c)  (len == 3 && inputstr[0] == (c) && inputstr[1] == '\0')
 
     #define __RESPONSE(fmt, ...) do { \
         os_sprintf(outputbuf, "%s" fmt "\n", outputbuf, __VA_ARGS__); \
@@ -58,10 +59,10 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
             RESPONSE("ERROR: invalid timezone offset");
         }
 
-    } else if (IS_CMD("status") || (len == 2 && inputstr[0] == 's')) {
+    } else if (IS_CMD("status") || IS_CHAR_CMD('s')) {
         time_t * tptr = getLocalTime();
         if (tptr == NULL) {
-            RESPONSE("ERROR: NTP not running, time unknown.");
+            RESPONSE("NTP not running, time unknown.");
         } else {
 
             time_t t = *tptr;

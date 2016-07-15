@@ -12,6 +12,100 @@
 #include "animation_presets.h"
 #include "alarm.h"
 
+
+const char* wifi_disconnect_reason_str(uint8_t reason)
+{
+    switch (reason) {
+        case REASON_UNSPECIFIED:
+            return "REASON_UNSPECIFIED";
+
+        case REASON_AUTH_EXPIRE:
+            return "REASON_AUTH_EXPIRE";
+
+        case REASON_AUTH_LEAVE:
+            return "REASON_AUTH_LEAVE";
+
+        case REASON_ASSOC_EXPIRE:
+            return "REASON_ASSOC_EXPIRE";
+
+        case REASON_ASSOC_TOOMANY:
+            return "REASON_ASSOC_TOOMANY";
+
+        case REASON_NOT_AUTHED:
+            return "REASON_NOT_AUTHED";
+
+        case REASON_NOT_ASSOCED:
+            return "REASON_NOT_ASSOCED";
+
+        case REASON_ASSOC_LEAVE:
+            return "REASON_ASSOC_LEAVE";
+
+        case REASON_ASSOC_NOT_AUTHED:
+            return "REASON_ASSOC_NOT_AUTHED";
+
+        case REASON_DISASSOC_PWRCAP_BAD:
+            return "REASON_DISASSOC_PWRCAP_BAD";
+
+        case REASON_DISASSOC_SUPCHAN_BAD:
+            return "REASON_DISASSOC_SUPCHAN_BAD";
+
+        case REASON_IE_INVALID:
+            return "REASON_IE_INVALID";
+
+        case REASON_MIC_FAILURE:
+            return "REASON_MIC_FAILURE";
+
+        case REASON_4WAY_HANDSHAKE_TIMEOUT:
+            return "REASON_4WAY_HANDSHAKE_TIMEOUT";
+
+        case REASON_GROUP_KEY_UPDATE_TIMEOUT:
+            return "REASON_GROUP_KEY_UPDATE_TIMEOUT";
+
+        case REASON_IE_IN_4WAY_DIFFERS:
+            return "REASON_IE_IN_4WAY_DIFFERS";
+
+        case REASON_GROUP_CIPHER_INVALID:
+            return "REASON_GROUP_CIPHER_INVALID";
+
+        case REASON_PAIRWISE_CIPHER_INVALID:
+            return "REASON_PAIRWISE_CIPHER_INVALID";
+
+        case REASON_AKMP_INVALID:
+            return "REASON_AKMP_INVALID";
+
+        case REASON_UNSUPP_RSN_IE_VERSION:
+            return "REASON_UNSUPP_RSN_IE_VERSION";
+
+        case REASON_INVALID_RSN_IE_CAP:
+            return "REASON_INVALID_RSN_IE_CAP";
+
+        case REASON_802_1X_AUTH_FAILED:
+            return "REASON_802_1X_AUTH_FAILED";
+
+        case REASON_CIPHER_SUITE_REJECTED:
+            return "REASON_CIPHER_SUITE_REJECTED";
+
+
+        case REASON_BEACON_TIMEOUT:
+            return "REASON_BEACON_TIMEOUT";
+
+        case REASON_NO_AP_FOUND:
+            return "REASON_NO_AP_FOUND";
+
+        case REASON_AUTH_FAIL:
+            return "REASON_AUTH_FAIL";
+
+        case REASON_ASSOC_FAIL:
+            return "REASON_ASSOC_FAIL";
+
+        case REASON_HANDSHAKE_TIMEOUT:
+            return "REASON_HANDSHAKE_TIMEOUT";
+
+        default:
+            return "INVALID REASON";
+    }
+}
+
 void wifi_callback( System_Event_t *evt )
 {
     os_printf( "%s: %d\n", __FUNCTION__, evt->event );
@@ -25,11 +119,11 @@ void wifi_callback( System_Event_t *evt )
             break;
 
         case EVENT_STAMODE_DISCONNECTED:
-            os_printf("disconnect from ssid %s, reason %d\n",
+            os_printf("disconnect from ssid %s, reason %s\n",
                     evt->event_info.disconnected.ssid,
-                    evt->event_info.disconnected.reason);
+                    wifi_disconnect_reason_str(evt->event_info.disconnected.reason));
 
-            LED_set(100,100,0, 0,0);
+            LED_set(100,30,0, 0,0);
             //deep_sleep_set_option( 0 );
             //system_deep_sleep( 60 * 1000 * 1000 );  // 60 seconds
             //LED_set(255,0,0, 0,0);
