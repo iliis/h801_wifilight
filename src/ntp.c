@@ -14,6 +14,7 @@ static const char ntpServerName[] = "ch.pool.ntp.org";
 //static const char ntpServerName[] = "time-b.timefreq.bldrdoc.gov";
 //static const char ntpServerName[] = "time-c.timefreq.bldrdoc.gov";
 
+// TODO: use this ;)
 const int timeZone = 1;     // Central European Time
 //const int timeZone = -5;  // Eastern Standard Time (USA)
 //const int timeZone = -4;  // Eastern Daylight Time (USA)
@@ -21,6 +22,17 @@ const int timeZone = 1;     // Central European Time
 //const int timeZone = -7;  // Pacific Daylight Time (USA)
 
 unsigned int localPort = 8888;  // local port to listen for UDP packets
+
+const int64_t max_correction_sec = 5; // don't correct internal RTC more than this amount when getting NTP data
+
+////////////////////////////////////////////////////////////////////////////////
+
+int64_t abs_i64(int64_t v) {
+    if (v < 0)
+        return -v;
+    else
+        return v;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -199,11 +211,28 @@ void ICACHE_FLASH_ATTR ntp_rx_packet(void * arg, char* data, unsigned short len)
     localt *= rtc_us >> 12;
     localt /= 1000*1000; // convert to seconds
 
-    // TODO: limit change in RTCdelta if already initialized (to prevent too exreme jumps in time)
-    RTCdelta = ((int64_t) t) - localt;
-
     os_printf("[NTP] raw system time: %lu ticks -> %lu s\n", rtc, localt);
     os_printf("[NTP] delta: %ld (%lu us/tick)\n", RTCdelta, rtc_us);
+
+    // update difference between local real time clock (RTC)
+    // prevent too extreme jumps in time by limiting this change
+    // TODO: test this ;)
+    int64_t new_RTCdelta = ((int64_t) t) - localt;
+    int64_t RTCdeltadelta = new_RTCdelta - RTCdelta;
+    if (abs_i64(RTCdeltadelta) <= max_correction_sec) {
+        os_printf("[NTP] updated RTCdelta by %lu\n", RTCdeltadelta);
+        RTCdelta = new_RTCdelta;
+    } else {
+        os_printf("[NTP] RTCdelta change too big: %lu > %lu\n", RTCdeltadelta, max_correction_sec);
+        if (new_RTCdelta < RTCdelta) {
+            os_printf("[NTP] updated RTCdelta by -%lu\n", RTCdeltadelta);
+            RTCdelta -= max_correction_sec;
+        } else {
+            os_printf("[NTP] updated RTCdelta by +%lu\n", RTCdeltadelta);
+            RTCdelta += max_correction_sec;
+        }
+    }
+
 
     // TODO: ouput status on LED (if this is the first valid time)
 
