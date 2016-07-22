@@ -7,6 +7,7 @@
 
 int timezone_offset = 2; // MESZ ;)
 time_t current_alarm_time = 0;
+int repeat_alarm = 0; // number of times to repeat alarm (-1 = inf)
 
 unsigned int anim_duration = 30 * 60; // animate over half an hour
 
@@ -45,6 +46,7 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
                 "status             - show time and currently set alarm\n"
                 "set_tz $offset     - set timezone offset relative to UTC\n"
                 "set_alarm $h $m    - arm alarm\n"
+                "repeat $n          - number of repetitions (0=none, -1=inf)\n"
                 "clr_alarm          - disable alarm\n"
                 "quit               - close this TCP session\n"
                 "help               - print this information ;)");
@@ -82,11 +84,20 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
                 simple_localtime(current_alarm_time, &tm_alarm);
                 RESPONSE("alarm set:    %d:%02d.%02d", tm_alarm.Hour, tm_alarm.Minute, tm_alarm.Second);
 
+                // TODO: this calculation is wrong
                 t = tm_now.Hour * 60 * 60 + tm_now.Minute * 60 + tm_now.Second;
                 t = current_alarm_time - t;
 
                 simple_localtime(t, &tm_alarm);
                 RESPONSE("this is in: %d:%02d.%02d", tm_alarm.Hour, tm_alarm.Minute, tm_alarm.Second);
+
+                if (repeat_alarm == 0) {
+                    RESPONSE("alarm will NOT be repeated");
+                } else if (repeat_alarm > 0) {
+                    RESPONSE("alarm will be repeated %d times", repeat_alarm);
+                } else {
+                    RESPONSE("alarm will be repeated indefinitely");
+                }
             }
         }
 
@@ -104,8 +115,14 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
             RESPONSE("alarm set to: %d:%02d.%02d", tm.Hour, tm.Minute, tm.Second);
         }
 
+    } else if (IS_CMD("repeat")) {
+        char * tmp;
+        repeat_alarm = strtol(&inputstr[6], &tmp, 0);
+        RESPONSE("alarm repetition count set to: %ld", repeat_alarm);
+
     } else if (IS_CMD("clr_alarm")) {
         current_alarm_time = 0;
+        stop_current_animation();
         RESPONSE("alarm disarmed");
 
     } else if (IS_CMD("led")) {
@@ -185,7 +202,12 @@ void alarm_timer_func(void *arg)
             // alarm goes off!
             start_animation(mkanim_sunset(anim_duration), 1);
 
-            current_alarm_time = 0; // disable alarm
+            if (repeat_alarm == 0) {
+                // don't repeat
+                current_alarm_time = 0; // disable alarm
+            } else if (repeat_alarm > 0) {
+                --repeat_alarm;
+            } // else (<0): repeat indefinitely
 
             os_printf("[ALARM] ALARM ALARM ALARM!!!\n");
         } else {

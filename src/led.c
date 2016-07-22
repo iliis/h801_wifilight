@@ -67,6 +67,8 @@ void ICACHE_FLASH_ATTR LED_set_arr(uint8_t rgbww[5])
     uint8_t channel = 0;
     for (; channel < PWM_CHANNEL_COUNT; channel++) {
 
+        // TODO: if output = 0, disable PWM and just use GPIO
+
         // convert to raw PWM duty cycle
         pwm_set_duty(gamma_table[rgbww[channel]], channel);
         //os_printf("[LED] setting channel %d to %ld\n", channel, gamma_table[rgbww[channel]]);
