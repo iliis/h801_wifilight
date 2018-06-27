@@ -193,7 +193,8 @@ void ICACHE_FLASH_ATTR
 user_init()
 {
     // Configure the UART
-    uart_init(115200, 115200);
+    //uart_init(115200, 115200);
+    uart_init(74880, 74880); // same as bootloader
     // enable system messages
 
     //uart_init(115200, 115200);
@@ -201,6 +202,8 @@ user_init()
     //uart_div_modify(1, UART_CLK_FREQ / 115200); // initialize UART1
     UART_SetPrintPort(1);
     system_set_os_print(1);
+
+    os_printf("Hallo welt\n");
 
     ///////////////////////////////////////////////////////////////////////////
     // RGB LED output
