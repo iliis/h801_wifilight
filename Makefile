@@ -138,10 +138,10 @@ $(FW_BASE):
 	$(Q) mkdir -p $@
 
 flash: $(FW_FILE_1) $(FW_FILE_2)
-	$(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
+	$(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash --verify $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
 
 term: flash
-	python -m serial.tools.miniterm $(ESPPORT) 74880
+	python -m serial.tools.miniterm --rts 0 --dtr 0 $(ESPPORT) 74880
 
 clean:
 	$(Q) rm -rf $(FW_BASE) $(BUILD_BASE)
