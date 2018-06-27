@@ -7,6 +7,7 @@
 # - Tommie Gannert (tommie)
 #
 # Changelog:
+# - 2018-06-27: Use shell commands to automatically determine path of SDK (requires correct $PATH). Use 0x10000 for the second file (esptool/eagle.app.v6.ld changed this).
 # - 2014-10-06: Changed the variables to include the header file directory
 # - 2014-10-06: Added global var for the Xtensa tool root
 # - 2014-11-23: Updated for SDK 0.9.3
@@ -17,17 +18,20 @@
 BUILD_BASE	= build
 FW_BASE		= firmware
 
+XTENSA_ROOT := $(realpath $(dir $(shell which xtensa-lx106-elf-gcc))../../)
+#$(info "using xtensa framework in '${XTENSA_ROOT}'")
+
 # base directory for the compiler
-XTENSA_TOOLS_ROOT ?= /home/samuel/programme/esp-open-sdk/xtensa-lx106-elf/bin
+XTENSA_TOOLS_ROOT ?= $(XTENSA_ROOT)/xtensa-lx106-elf/bin
 #/opt/Espressif/crosstool-NG/builds/xtensa-lx106-elf/bin
 
 # base directory of the ESP8266 SDK package, absolute
-SDK_BASE	?= /home/samuel/programme/esp-open-sdk/sdk
+SDK_BASE	?= $(XTENSA_ROOT)/sdk
 #/opt/Espressif/ESP8266_SDK
 
 # esptool.py path and port
-ESPTOOL		?= /usr/bin/esptool.py
-ESPPORT		?= /dev/ttyUSB5
+ESPTOOL		?= $(shell which esptool.py)
+ESPPORT		?= /dev/ttyUSB0
 ESPBAUD		?= 912600
 #ESPBAUD		?= 230400
 #ESPBAUD		?= 115200
@@ -59,7 +63,7 @@ SDK_INCDIR	= include include/json
 # we create two different files for uploading into the flash
 # these are the names and options to generate them
 FW_FILE_1_ADDR	= 0x00000
-FW_FILE_2_ADDR	= 0x40000
+FW_FILE_2_ADDR	= 0x10000
 
 # select which tools to use as compiler, librarian and linker
 CC		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-gcc
@@ -134,7 +138,6 @@ $(FW_BASE):
 	$(Q) mkdir -p $@
 
 flash: $(FW_FILE_1) $(FW_FILE_2)
-	-killall minicom
 	$(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
 
 clean:

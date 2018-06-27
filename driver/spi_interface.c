@@ -1,19 +1,27 @@
-/**
- *  spi_interface.c
+/*
+ * ESPRESSIF MIT License
  *
- * Defines and Macros for the SPI.
+ * Copyright (c) 2016 <ESPRESSIF SYSTEMS (SHANGHAI) PTE LTD>
  *
- * Copyright @ 2015 Espressif System Co., Ltd.
- * All Rights Reserved.
+ * Permission is hereby granted for use on ESPRESSIF SYSTEMS ESP8266 only, in which case,
+ * it is free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished
+ * to do so, subject to the following conditions:
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are NOT permitted except as agreed by
- * Espressif System Co., Ltd.
+ * The above copyright notice and this permission notice shall be included in all copies or
+ * substantial portions of the Software.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
  */
+
 /**
  * @file spi_interface.c
  * @brief Defines and Macros for the SPI.
@@ -231,7 +239,7 @@ int ICACHE_FLASH_ATTR SPIMasterSendData(SpiNum spiNum, SpiData* pInData)
         // Load send buffer
         do {
             WRITE_PERI_REG((SPI_W0(spiNum) + (idx << 2)), *value++);
-        } while (++idx < (pInData->dataLen / 4));
+        } while (++idx < ((pInData->dataLen / 4) + ((pInData->dataLen % 4) ? 1 : 0)));
         // Set data send buffer length.Max data length 64 bytes.
         SET_PERI_REG_BITS(SPI_USER1(spiNum), SPI_USR_MOSI_BITLEN, ((pInData->dataLen << 3) - 1), SPI_USR_MOSI_BITLEN_S);
     } else {
@@ -314,8 +322,9 @@ int ICACHE_FLASH_ATTR SPIMasterRecvData(SpiNum spiNum, SpiData* pOutData)
     while (READ_PERI_REG(SPI_CMD(spiNum))&SPI_USR);
     // Read data out
     do {
-        *pOutData->data++ = READ_PERI_REG(SPI_W0(spiNum) + (idx << 2));
-    } while (++idx < (pOutData->dataLen / 4));
+        *value++ = READ_PERI_REG(SPI_W0(spiNum) + (idx << 2));
+    } while (++idx < ((pOutData->dataLen / 4) + ((pOutData->dataLen % 4) ? 1 : 0)));
+    
 
     return 0;
 }
@@ -329,9 +338,10 @@ int ICACHE_FLASH_ATTR SPISlaveSendData(SpiNum spiNum, uint32_t *pInData, uint8_t
     if (NULL == pInData) {
         return -1;
     }
+	uint32_t *value = pInData;
     char i;
     for (i = 0; i < inLen; ++i) {
-        WRITE_PERI_REG((SPI_W8(spiNum) + (i << 2)), *pInData++);
+        WRITE_PERI_REG((SPI_W8(spiNum) + (i << 2)), *value++);
     }
     // Enable slave transmission liston
     SET_PERI_REG_MASK(SPI_CMD(spiNum), SPI_USR);

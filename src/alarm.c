@@ -166,7 +166,7 @@ void ICACHE_FLASH_ATTR alarm_server_accept_connect_cb(void * arg)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static volatile os_timer_t alarm_timer;
+static os_timer_t alarm_timer;
 
 void alarm_timer_func(void *arg)
 {

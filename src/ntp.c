@@ -147,7 +147,7 @@ void ICACHE_FLASH_ATTR sendNTPpacket()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static volatile os_timer_t ntp_timeout_timer;
+static os_timer_t ntp_timeout_timer;
 
 void ntp_timeout(void *arg)
 {
@@ -213,7 +213,7 @@ void ICACHE_FLASH_ATTR ntp_rx_packet(void * arg, char* data, unsigned short len)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static volatile os_timer_t ntp_update_timer;
+static os_timer_t ntp_update_timer;
 
 void ntp_update(void *arg)
 {
@@ -222,7 +222,7 @@ void ntp_update(void *arg)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static volatile os_timer_t reboot_timer;
+static os_timer_t reboot_timer;
 void reboot_timer_cb(void * arg)
 {
     os_printf("REBOOTING!\n");
