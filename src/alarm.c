@@ -55,11 +55,11 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
         // TODO: implement error handling correctly
         errno = 0; char * tmp;
         int offset = strtol(&inputstr[6], &tmp, 0);
-        if (errno == 0 && *tmp != '\0') {
+        if (errno == 0 && *tmp == '\0') {
             timezone_offset = offset;
             RESPONSE("timezone offset set to %d", timezone_offset);
         } else {
-            RESPONSE("ERROR: invalid timezone offset");
+            RESPONSE("ERROR: invalid timezone offset (errno: %d)", errno);
         }
 
     } else if (IS_CMD("status") || IS_CHAR_CMD('s')) {
