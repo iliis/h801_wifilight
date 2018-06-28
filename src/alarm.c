@@ -6,7 +6,7 @@
 // actual alarm stuff
 
 int timezone_offset = 2; // MESZ ;)
-time_t current_alarm_time = 0;
+time_t current_alarm_time = 0; // absolute timestamp when next alarm should go off (i.e. in seconds since 1900)
 int repeat_alarm = 0; // number of times to repeat alarm (-1 = inf)
 
 unsigned int anim_duration = 30 * 60; // animate over half an hour
@@ -17,6 +17,27 @@ unsigned int anim_duration = 30 * 60; // animate over half an hour
 
 // TODO: use gcc intrinsics for single-eval implementation
 #define MIN(a, b)   ((a)<(b)?(a):(b))
+
+////////////////////////////////////////////////////////////////////////////////
+
+bool ICACHE_FLASH_ATTR getLocalTimeStruct(tmElements_t* tstruct, time_t* stamp)
+{
+    time_t * tptr = getLocalTime();
+    if (tptr == NULL) {
+        return false;
+    }
+
+    time_t t = *tptr;
+
+    t += timezone_offset * 60 * 60;
+
+    if (stamp != NULL) {
+        *stamp = t;
+    }
+
+    simple_localtime(t, tstruct);
+    return true;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -64,17 +85,10 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
         }
 
     } else if (IS_CMD("status") || IS_CHAR_CMD('s')) {
-        time_t * tptr = getLocalTime();
-        if (tptr == NULL) {
+        tmElements_t tm_now; time_t stamp;
+        if (!getLocalTimeStruct(&tm_now, &stamp)) {
             RESPONSE("NTP not running, time unknown.");
         } else {
-
-            time_t t = *tptr;
-
-            t += timezone_offset * 60 * 60;
-
-            tmElements_t tm_now;
-            simple_localtime(t, &tm_now);
 
             RESPONSE("current time: %d:%02d.%02d (UTC+%d)",
                     tm_now.Hour, tm_now.Minute, tm_now.Second, timezone_offset);
@@ -86,11 +100,7 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
                 simple_localtime(current_alarm_time, &tm_alarm);
                 RESPONSE("alarm set:    %d:%02d.%02d", tm_alarm.Hour, tm_alarm.Minute, tm_alarm.Second);
 
-                // TODO: this calculation is wrong
-                t = tm_now.Hour * 60 * 60 + tm_now.Minute * 60 + tm_now.Second;
-                t = current_alarm_time - t;
-
-                simple_localtime(t, &tm_alarm);
+                simple_localtime(current_alarm_time - stamp, &tm_alarm);
                 RESPONSE("this is in: %d:%02d.%02d", tm_alarm.Hour, tm_alarm.Minute, tm_alarm.Second);
 
                 if (repeat_alarm == 0) {
@@ -104,17 +114,31 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
         }
 
     } else if (IS_CMD("set_alarm")) {
-        char * tmp;
-        int hours   = strtol(&inputstr[10], &tmp, 0);
-        int minutes = strtol(tmp, NULL, 0);
-
-        if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-            RESPONSE("Invalid time: %d : %d", hours, minutes);
+        tmElements_t tm_now; time_t stamp;
+        if (!getLocalTimeStruct(&tm_now, &stamp)) {
+            RESPONSE("cannot set alarm: NTP not running, time unknown.");
         } else {
-            current_alarm_time = hours * 60 * 60 + minutes * 60;
-            tmElements_t tm;
-            simple_localtime(current_alarm_time, &tm);
-            RESPONSE("alarm set to: %d:%02d.%02d", tm.Hour, tm.Minute, tm.Second);
+            char * tmp;
+            int hours   = strtol(&inputstr[10], &tmp, 0);
+            int minutes = strtol(tmp, NULL, 0);
+
+            if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+                RESPONSE("Invalid time: %d : %d", hours, minutes);
+            } else {
+
+                time_t start_of_day = previousMidnight(stamp);
+
+                if (tm_now.Hour > hours || (tm_now.Hour == hours && tm_now.Minute >= minutes)) {
+                    // alarm is on next day
+                    start_of_day = nextMidnight(stamp);
+                }
+
+                current_alarm_time = start_of_day + hours*SECS_PER_HOUR + minutes*SECS_PER_MIN;
+
+                tmElements_t tm;
+                simple_localtime(current_alarm_time, &tm);
+                RESPONSE("alarm set to: %d:%02d.%02d", tm.Hour, tm.Minute, tm.Second);
+            }
         }
 
     } else if (IS_CMD("repeat")) {
@@ -190,18 +214,11 @@ static os_timer_t alarm_timer;
 
 void alarm_timer_func(void *arg)
 {
-    time_t* tptr = getLocalTime();
-    if (tptr && current_alarm_time != 0) {
-        time_t t = *tptr;
-        t += timezone_offset * 60 * 60;
+    tmElements_t tm_now; time_t stamp;
+    if (getLocalTimeStruct(&tm_now, &stamp) && current_alarm_time != 0) {
         // we have a valid localtime and alarm is armed
-        tmElements_t tm_now;
-        simple_localtime(t, &tm_now);
 
-        tmElements_t tm_alarm;
-        simple_localtime(current_alarm_time, &tm_alarm);
-
-        if (tm_now.Hour == tm_alarm.Hour && tm_now.Minute == tm_alarm.Minute) {
+        if (current_alarm_time <= stamp) {
             // alarm goes off!
             start_animation(mkanim_sunset(anim_duration), 1);
 
@@ -214,6 +231,8 @@ void alarm_timer_func(void *arg)
 
             os_printf("[ALARM] ALARM ALARM ALARM!!!\n");
         } else {
+            tmElements_t tm_alarm;
+            simple_localtime(current_alarm_time, &tm_alarm);
             os_printf("[ALARM] not yet time for alarm...\n");
             os_printf("[ALARM] alarm at %d:%02d, now is %d:%02d\n", tm_alarm.Hour, tm_alarm.Minute, tm_now.Hour, tm_now.Minute);
         }

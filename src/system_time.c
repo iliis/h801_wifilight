@@ -23,14 +23,14 @@ void update_system_time(void *arg)
     rtc_delta *= rtc_us >> 12;
 
     if (rtc_delta < 0) {
-        os_printf("[SYST] WARN: RTC is running backwards: delta = %lld\n", rtc_delta);
+        os_printf("[CLK] WARN: RTC is running backwards: delta = %lld\n", rtc_delta);
         rtc_delta = 0;
     }
 
     // accumulate time
     accumulated_system_time_us += rtc_delta;
 
-    //os_printf("[SYST] updating system time by %lld uS. It is now %llu uS since startup.\n", rtc_delta, accumulated_system_time_us);
+    //os_printf("[CLK] updating system time by %lld uS. It is now %llu uS since startup.\n", rtc_delta, accumulated_system_time_us);
 
     // Q: should we handle overflows?
     // A: Nah, 2^64 uS equals about half a million years. I'll buy you a beer if you ever run into this.
