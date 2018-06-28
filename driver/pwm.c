@@ -27,15 +27,21 @@
   #define PWM_MAX_CHANNELS 8
 #endif
 #define PWM_DEBUG 0
+#define PWM_USE_NMI 0
 
 /* no user servicable parts beyond this point */
 
+#define PWM_MAX_TICKS 0x7fffff
 #if SDK_PWM_PERIOD_COMPAT_MODE
 #define PWM_PERIOD_TO_TICKS(x) (x * 0.2)
 #define PWM_DUTY_TO_TICKS(x) (x * 5)
+#define PWM_MAX_DUTY (PWM_MAX_TICKS * 0.2)
+#define PWM_MAX_PERIOD (PWM_MAX_TICKS * 5)
 #else
 #define PWM_PERIOD_TO_TICKS(x) (x)
 #define PWM_DUTY_TO_TICKS(x) (x)
+#define PWM_MAX_DUTY PWM_MAX_TICKS
+#define PWM_MAX_PERIOD PWM_MAX_TICKS
 #endif
 
 #include <c_types.h>
@@ -48,7 +54,7 @@
 #define TIMER1_ENABLE_TIMER             0x0080
 
 struct pwm_phase {
-	int32_t ticks;     ///< delay until next phase, in 200ns units
+	uint32_t ticks;    ///< delay until next phase, in 200ns units
 	uint16_t on_mask;  ///< GPIO mask to switch on
 	uint16_t off_mask; ///< GPIO mask to switch off
 };
@@ -89,7 +95,7 @@ struct gpio_regs {
 	uint32_t status_w1ts; /* 0x60000320 */
 	uint32_t status_w1tc; /* 0x60000324 */
 };
-static struct gpio_regs* gpio = (void*)(0x60000300);
+static struct gpio_regs* gpio = (struct gpio_regs*)(0x60000300);
 
 struct timer_regs {
 	uint32_t frc1_load;   /* 0x60000600 */
@@ -103,9 +109,10 @@ struct timer_regs {
 	uint32_t frc2_int;    /* 0x6000062C */
 	uint32_t frc2_alarm;  /* 0x60000630 */
 };
-static struct timer_regs* timer = (void*)(0x60000600);
+static struct timer_regs* timer = (struct timer_regs*)(0x60000600);
 
-static void pwm_intr_handler(void)
+static void
+pwm_intr_handler(void *_unused)
 {
 	if ((pwm_state.current_set[pwm_state.current_phase].off_mask == 0) &&
 	    (pwm_state.current_set[pwm_state.current_phase].on_mask == 0)) {
@@ -185,12 +192,15 @@ pwm_init(uint32_t period, uint32_t *duty, uint32_t pwm_channel_num,
 
 	pwm_set_period(period);
 
+#if PWM_USE_NMI
+	ETS_FRC_TIMER1_NMI_INTR_ATTACH(pwm_intr_handler);
+#else
 	ETS_FRC_TIMER1_INTR_ATTACH(pwm_intr_handler, NULL);
+#endif
 	TM1_EDGE_INT_ENABLE();
 
-	RTC_CLR_REG_MASK(FRC1_INT_ADDRESS, FRC1_INT_CLR_MASK);
-	RTC_REG_WRITE(FRC1_CTRL_ADDRESS,
-		TIMER1_DIVIDE_BY_16 | TIMER1_ENABLE_TIMER);
+	timer->frc1_int &= ~FRC1_INT_CLR_MASK;
+	timer->frc1_ctrl = 0;
 
 	pwm_start();
 }
@@ -209,10 +219,10 @@ _pwm_phases_prep(struct pwm_phase* pwm)
 	}
 	phases = 1;
 	for (n = 0; n < pwm_channels; n++) {
-		int32_t ticks = PWM_DUTY_TO_TICKS(pwm_duty[n]);
+		uint32_t ticks = PWM_DUTY_TO_TICKS(pwm_duty[n]);
 		if (ticks == 0) {
 			pwm[0].off_mask |= gpio_mask[n];
-		} else if (ticks >= pwm_period) {
+		} else if (ticks >= pwm_period_ticks) {
 			pwm[0].on_mask |= gpio_mask[n];
 		} else {
 			if (ticks < (pwm_period_ticks/2)) {
@@ -358,9 +368,14 @@ pwm_start(void)
 	uint8_t phases = _pwm_phases_prep(*pwm);
 
         // all with 0% / 100% duty - stop timer
-	if ((*pwm)[phases].ticks == pwm_period_ticks) {
-		if (pwm_state.next_set)
+	if (phases == 1) {
+		if (pwm_state.next_set) {
+#if PWM_DEBUG
+			ets_printf("PWM stop\n");
+#endif
+			timer->frc1_ctrl = 0;
 			ETS_FRC1_INTR_DISABLE();
+		}
 		pwm_state.next_set = NULL;
 
 		GPIO_REG_WRITE(GPIO_OUT_W1TS_ADDRESS, (*pwm)[0].on_mask);
@@ -371,10 +386,14 @@ pwm_start(void)
 
 	// start if not running
 	if (!pwm_state.next_set) {
+#if PWM_DEBUG
+		ets_printf("PWM start\n");
+#endif
 		pwm_state.current_set = pwm_state.next_set = *pwm;
 		pwm_state.current_phase = phases - 1;
 		ETS_FRC1_INTR_ENABLE();
 		RTC_REG_WRITE(FRC1_LOAD_ADDRESS, 0);
+		timer->frc1_ctrl = TIMER1_DIVIDE_BY_16 | TIMER1_ENABLE_TIMER;
 		return;
 	}
 
@@ -386,6 +405,10 @@ pwm_set_duty(uint32_t duty, uint8_t channel)
 {
 	if (channel > PWM_MAX_CHANNELS)
 		return;
+
+	if (duty > PWM_MAX_DUTY)
+		duty = PWM_MAX_DUTY;
+
 	pwm_duty[channel] = duty;
 }
 
@@ -401,11 +424,11 @@ void ICACHE_FLASH_ATTR
 pwm_set_period(uint32_t period)
 {
 	pwm_period = period;
+
+	if (pwm_period > PWM_MAX_PERIOD)
+		pwm_period = PWM_MAX_PERIOD;
+
 	pwm_period_ticks = PWM_PERIOD_TO_TICKS(period);
-
-	if (pwm_period_ticks > 0x7fffff)
-		pwm_period_ticks = 0x7fffff;
-
 }
 
 uint32_t ICACHE_FLASH_ATTR

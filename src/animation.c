@@ -135,7 +135,7 @@ int64_t last_timestamp = 0;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static volatile os_timer_t animation_timer;
+static os_timer_t animation_timer;
 
 void animation_timer_func(void * unused) {
     if (current_animation && current_animation->running) {

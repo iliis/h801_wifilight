@@ -159,7 +159,7 @@ void ICACHE_FLASH_ATTR sendNTPpacket()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static volatile os_timer_t ntp_timeout_timer;
+static os_timer_t ntp_timeout_timer;
 
 void ntp_timeout(void *arg)
 {
@@ -242,7 +242,7 @@ void ICACHE_FLASH_ATTR ntp_rx_packet(void * arg, char* data, unsigned short len)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static volatile os_timer_t ntp_update_timer;
+static os_timer_t ntp_update_timer;
 
 void ntp_update(void *arg)
 {
@@ -251,7 +251,7 @@ void ntp_update(void *arg)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static volatile os_timer_t reboot_timer;
+static os_timer_t reboot_timer;
 void reboot_timer_cb(void * arg)
 {
     os_printf("REBOOTING!\n");
@@ -282,7 +282,7 @@ time_t * ICACHE_FLASH_ATTR getLocalTime()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static volatile os_timer_t print_time_timer;
+static os_timer_t print_time_timer;
 void print_time(void * arg)
 {
     time_t * t = getLocalTime();
@@ -333,7 +333,10 @@ void ICACHE_FLASH_ATTR NTPinit()
     // periodically call ntp_update()
     os_timer_disarm(&ntp_update_timer);
     os_timer_setfn(&ntp_update_timer, ntp_update, NULL);
-    os_timer_arm(&ntp_update_timer, 10*1000, 1);
+    os_timer_arm(&ntp_update_timer, 10*60*1000, 1); // update every 10 minutes
+
+    // update immediately
+    sendNTPpacket();
 
     // print local time
     //os_timer_setfn(&print_time_timer, print_time, NULL);

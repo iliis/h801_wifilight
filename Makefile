@@ -27,10 +27,10 @@ SDK_BASE	?= /home/samuel/programme/esp-open-sdk/sdk
 
 # esptool.py path and port
 ESPTOOL		?= /usr/bin/esptool.py
-ESPPORT		?= /dev/ttyUSB5
-ESPBAUD		?= 912600
+ESPPORT		?= /dev/ttyUSB1
+#ESPBAUD		?= 912600
 #ESPBAUD		?= 230400
-#ESPBAUD		?= 115200
+ESPBAUD		?= 115200
 
 # name for the target project
 TARGET		= app
@@ -43,7 +43,8 @@ EXTRA_INCDIR    = include
 LIBS		= c gcc hal pp phy net80211 lwip wpa main
 
 # compiler flags using during compilation of source files
-CFLAGS		= -Os -g -O2 -Wpointer-arith -Wundef -Werror -Wl,-EL -fno-inline-functions -nostdlib -mlongcalls -mtext-section-literals  -D__ets__ -DICACHE_FLASH
+CFLAGS		= -Os -g -O2 -Wpointer-arith -Wundef -Werror -Wl,-EL -fno-inline-functions -nostdlib -mlongcalls -mtext-section-literals -D__ets__ -DICACHE_FLASH
+CXXFLAGS	= $(CFLAGS) -fno-rtti -fno-exceptions
 
 # linker flags used to generate the main object file
 LDFLAGS		= -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static
@@ -59,10 +60,11 @@ SDK_INCDIR	= include include/json
 # we create two different files for uploading into the flash
 # these are the names and options to generate them
 FW_FILE_1_ADDR	= 0x00000
-FW_FILE_2_ADDR	= 0x40000
+FW_FILE_2_ADDR	= 0x10000
 
 # select which tools to use as compiler, librarian and linker
 CC		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-gcc
+CXX		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-g++
 AR		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-ar
 LD		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-gcc
 
@@ -77,8 +79,10 @@ BUILD_DIR	:= $(addprefix $(BUILD_BASE)/,$(MODULES))
 SDK_LIBDIR	:= $(addprefix $(SDK_BASE)/,$(SDK_LIBDIR))
 SDK_INCDIR	:= $(addprefix -I$(SDK_BASE)/,$(SDK_INCDIR))
 
-SRC		:= $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.c))
-OBJ		:= $(patsubst %.c,$(BUILD_BASE)/%.o,$(SRC))
+SRC			:= $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.c*))
+C_OBJ		:= $(patsubst %.c,%.o,$(SRC))
+CXX_OBJ		:= $(patsubst %.cpp,%.o,$(C_OBJ))
+OBJ			:= $(patsubst %.o,$(BUILD_BASE)/%.o,$(CXX_OBJ))
 LIBS		:= $(addprefix -l,$(LIBS))
 APP_AR		:= $(addprefix $(BUILD_BASE)/,$(TARGET)_app.a)
 TARGET_OUT	:= $(addprefix $(BUILD_BASE)/,$(TARGET).out)
@@ -101,13 +105,19 @@ Q := @
 vecho := @echo
 endif
 
-vpath %.c $(SRC_DIR)
+vpath %.c   $(SRC_DIR)
+vpath %.cpp $(SRC_DIR)
 
 define compile-objects
 $1/%.o: %.c
 	$(vecho) "CC $$<"
-	$(Q) $(CC) $(INCDIR) $(MODULE_INCDIR) $(EXTRA_INCDIR) $(SDK_INCDIR) $(CFLAGS) -c $$< -o $$@
+	$(Q) $(CXX) $(INCDIR) $(MODULE_INCDIR) $(EXTRA_INCDIR) $(SDK_INCDIR) $(CXXFLAGS) -c $$< -o $$@
+$1/%.o: %.cpp
+	$(vecho) "CXX $$<"
+	$(Q) $(CXX) $(INCDIR) $(MODULE_INCDIR) $(EXTRA_INCDIR) $(SDK_INCDIR) $(CXXFLAGS) -c $$< -o $$@
 endef
+
+$(info incdirs: [${INCDIR}])
 
 .PHONY: all checkdirs flash clean
 
@@ -135,7 +145,15 @@ $(FW_BASE):
 
 flash: $(FW_FILE_1) $(FW_FILE_2)
 	-killall minicom
-	$(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
+	$(ESPTOOL) --after soft_reset --port $(ESPPORT) --baud $(ESPBAUD) write_flash $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
+
+verify: $(FW_FILE_1) $(FW_FILE_2)
+	-killall minicom
+	$(ESPTOOL) --after soft_reset --port $(ESPPORT) --baud $(ESPBAUD) verify_flash $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
+
+terminal:
+	stty -F $(ESPPORT) $(ESPBAUD) raw
+	cat $(ESPPORT)
 
 clean:
 	$(Q) rm -rf $(FW_BASE) $(BUILD_BASE)

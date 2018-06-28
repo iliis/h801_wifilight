@@ -4,6 +4,7 @@
 #include <os_type.h>
 #include <user_interface.h>
 #include <espconn.h>
+#include <driver/uart.h>
 //#include "driver/uart.h"
 
 #include "user_config.h"
@@ -12,6 +13,7 @@
 #include "animation_presets.h"
 #include "alarm.h"
 
+#include "test.h"
 
 const char* wifi_disconnect_reason_str(uint8_t reason)
 {
@@ -201,6 +203,17 @@ user_init()
     //uart_div_modify(1, UART_CLK_FREQ / 115200); // initialize UART1
     UART_SetPrintPort(1);
     system_set_os_print(1);
+
+    /*
+    while (1) {
+        uint32_t i = 0;
+        os_printf("hallo welt\n");
+        //uart1_sendStr_no_wait("hallo welt :)\n");
+        for (; i<100; i++) {
+            os_delay_us(10000);
+        }
+    }
+    */
 
     ///////////////////////////////////////////////////////////////////////////
     // RGB LED output

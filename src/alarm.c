@@ -15,7 +15,8 @@ unsigned int anim_duration = 30 * 60; // animate over half an hour
 // SERVER
 ////////////////////////////////////////////////////////////////////////////////
 
-#define MIN(a, b)   (a<b?a:b)
+// TODO: use gcc intrinsics for single-eval implementation
+#define MIN(a, b)   ((a)<(b)?(a):(b))
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -183,7 +184,7 @@ void ICACHE_FLASH_ATTR alarm_server_accept_connect_cb(void * arg)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static volatile os_timer_t alarm_timer;
+static os_timer_t alarm_timer;
 
 void alarm_timer_func(void *arg)
 {
