@@ -49,6 +49,7 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
                 "set_alarm $h $m    - arm alarm\n"
                 "repeat $n          - number of repetitions (0=none, -1=inf)\n"
                 "clr_alarm          - disable alarm\n"
+                "ntp                - query NTP server to update time\n"
                 "quit               - close this TCP session\n"
                 "help               - print this information ;)");
     } else if (IS_CMD("set_tz")) {
@@ -147,9 +148,10 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
         LED_set_arr(rgbww);
         RESPONSE("new color: %02x:%02x:%02x:%02x:%02x", rgbww[0], rgbww[1], rgbww[2], rgbww[3],rgbww[4]);
 
+    } else if (IS_CMD("ntp")) {
+        sendNTPpacket();
     } else if (IS_CMD("quit")) {
         espconn_disconnect(conn);
-
     } else {
         RESPONSE("ERROR: Unkown command. See 'help' for a list of valid commands.");
     }

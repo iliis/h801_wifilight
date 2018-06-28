@@ -23,7 +23,8 @@ const int timeZone = 1;     // Central European Time
 
 unsigned int localPort = 8888;  // local port to listen for UDP packets
 
-const int64_t max_correction_sec = 5; // don't correct internal RTC more than this amount when getting NTP data
+const int64_t max_correction_sec = 30; // don't correct internal RTC more than this amount when getting NTP data
+// RTC seems to drift quite a bit...
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -119,6 +120,15 @@ uint8 packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming & outgoing packet
 
 ////////////////////////////////////////////////////////////////////////////////
 
+uint64 get_internal_time()
+{
+    uint64 localt = get_system_time_us();;
+    localt /= 1000*1000; // convert to seconds
+    return localt;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 void ICACHE_FLASH_ATTR sendNTPpacket()
 {
     if (ntpServerIP.addr == 0) {
@@ -197,39 +207,46 @@ void ICACHE_FLASH_ATTR ntp_rx_packet(void * arg, char* data, unsigned short len)
 
     os_printf("[NTP] got data from server at " IPSTR ": %lu\n", IP2STR(conn->proto.udp->remote_ip), s);
 
-    time_t t = s - DIFF_SEC_1900_1970;
+    time_t ntp_time = s - DIFF_SEC_1900_1970;
 
     tmElements_t tm;
-    simple_localtime(t, &tm);
+    simple_localtime(ntp_time, &tm);
 
     os_printf("[NTP] current time: %02d:%02d.%02d UTC\n", tm.Hour, tm.Minute, tm.Second);
 
-    uint32 rtc = system_get_rtc_time();
-    uint32 rtc_us = system_rtc_clock_cali_proc(); // us per RTC cycle
+    uint64 internal_time = get_internal_time();
 
-    uint64 localt = rtc;
-    localt *= rtc_us >> 12;
-    localt /= 1000*1000; // convert to seconds
+    os_printf("[NTP] raw system time: %llu s\n", internal_time);
+    os_printf("[NTP] delta: %lld sec\n", RTCdelta);
 
-    os_printf("[NTP] raw system time: %lu ticks -> %lu s\n", rtc, localt);
-    os_printf("[NTP] delta: %ld (%lu us/tick)\n", RTCdelta, rtc_us);
-
-    // update difference between local real time clock (RTC)
-    // prevent too extreme jumps in time by limiting this change
-    // TODO: test this ;)
-    int64_t new_RTCdelta = ((int64_t) t) - localt;
-    int64_t RTCdeltadelta = new_RTCdelta - RTCdelta;
-    if (abs_i64(RTCdeltadelta) <= max_correction_sec) {
-        os_printf("[NTP] updated RTCdelta by %lu\n", RTCdeltadelta);
-        RTCdelta = new_RTCdelta;
+    if (RTCdelta == INT64_MAX) {
+        RTCdelta = ((int64_t) ntp_time) - internal_time;
+        os_printf("[NTP] RTCdelta initialized to %lld seconds.\n", RTCdelta);
     } else {
-        os_printf("[NTP] RTCdelta change too big: %lu > %lu\n", RTCdeltadelta, max_correction_sec);
-        if (new_RTCdelta < RTCdelta) {
-            os_printf("[NTP] updated RTCdelta by -%lu\n", RTCdeltadelta);
-            RTCdelta -= max_correction_sec;
+
+        // update difference between local real time clock (RTC)
+        // prevent too extreme jumps in time by limiting this change
+        //
+        // TODO: estimate bias of internal timer, as the RTC not only seems to
+        // drift randomly but the calibration value returned by
+        // system_rtc_clock_cali_proc() seems to be consistently off
+        //
+        // TODO: output drift = RTCdeltadelta / (ntp_time - last_ntp_time)
+
+        int64_t new_RTCdelta = ((int64_t) ntp_time) - internal_time;
+        int64_t RTCdeltadelta = new_RTCdelta - RTCdelta;
+        if (abs_i64(RTCdeltadelta) <= max_correction_sec) {
+            os_printf("[NTP] updated RTCdelta by %llu seconds\n", RTCdeltadelta);
+            RTCdelta = new_RTCdelta;
         } else {
-            os_printf("[NTP] updated RTCdelta by +%lu\n", RTCdeltadelta);
-            RTCdelta += max_correction_sec;
+            os_printf("[NTP] RTCdelta change too big: %lld > %lld\n", RTCdeltadelta, max_correction_sec);
+            if (new_RTCdelta < RTCdelta) {
+                os_printf("[NTP] updated RTCdelta by -%lld sec.\n", max_correction_sec);
+                RTCdelta -= max_correction_sec;
+            } else {
+                os_printf("[NTP] updated RTCdelta by +%lld sec.\n", max_correction_sec);
+                RTCdelta += max_correction_sec;
+            }
         }
     }
 
@@ -269,14 +286,8 @@ time_t * ICACHE_FLASH_ATTR getLocalTime()
         return NULL;
     }
 
-    uint32 rtc = system_get_rtc_time();
-    uint32 rtc_us = system_rtc_clock_cali_proc(); // us per RTC cycle
 
-    uint64 localt = rtc;
-    localt *= rtc_us >> 12;
-    localt /= 1000*1000; // convert to seconds
-
-    t = RTCdelta + localt;
+    t = RTCdelta + get_internal_time();
     return &t;
 }
 
@@ -333,7 +344,7 @@ void ICACHE_FLASH_ATTR NTPinit()
     // periodically call ntp_update()
     os_timer_disarm(&ntp_update_timer);
     os_timer_setfn(&ntp_update_timer, ntp_update, NULL);
-    os_timer_arm(&ntp_update_timer, 10*60*1000, 1); // update every 10 minutes
+    os_timer_arm(&ntp_update_timer, 60*1000, 1); // update every minute
 
     // update immediately
     sendNTPpacket();

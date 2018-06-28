@@ -10,6 +10,10 @@
 #include <limits.h>
 
 #include "simpletime.h"
+#include "system_time.h"
+
+// query NTP server (i.e. force update)
+void ICACHE_FLASH_ATTR sendNTPpacket();
 
 // returns NULL if not initialized
 time_t * ICACHE_FLASH_ATTR getLocalTime();
