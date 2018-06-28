@@ -1,5 +1,4 @@
-// source: https://raw.githubusercontent.com/StefanBruens/ESP8266_new_pwm/master/pwm.c
-
+// source https://raw.githubusercontent.com/StefanBruens/ESP8266_new_pwm/master/pwm.c
 /*
  * Copyright (C) 2016 Stefan Brüns <stefan.bruens@rwth-aachen.de>
  *

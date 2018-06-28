@@ -13,8 +13,6 @@
 #include "animation_presets.h"
 #include "alarm.h"
 
-#include "test.h"
-
 const char* wifi_disconnect_reason_str(uint8_t reason)
 {
     switch (reason) {
@@ -195,7 +193,8 @@ void ICACHE_FLASH_ATTR
 user_init()
 {
     // Configure the UART
-    uart_init(115200, 115200);
+    //uart_init(115200, 115200);
+    uart_init(74880, 74880); // same as bootloader
     // enable system messages
 
     //uart_init(115200, 115200);

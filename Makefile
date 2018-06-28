@@ -7,6 +7,7 @@
 # - Tommie Gannert (tommie)
 #
 # Changelog:
+# - 2018-06-27: Use shell commands to automatically determine path of SDK (requires correct $PATH). Use 0x10000 for the second file (esptool/eagle.app.v6.ld changed this).
 # - 2014-10-06: Changed the variables to include the header file directory
 # - 2014-10-06: Added global var for the Xtensa tool root
 # - 2014-11-23: Updated for SDK 0.9.3
@@ -17,20 +18,23 @@
 BUILD_BASE	= build
 FW_BASE		= firmware
 
+XTENSA_ROOT := $(realpath $(dir $(shell which xtensa-lx106-elf-gcc))../../)
+#$(info "using xtensa framework in '${XTENSA_ROOT}'")
+
 # base directory for the compiler
-XTENSA_TOOLS_ROOT ?= /home/samuel/programme/esp-open-sdk/xtensa-lx106-elf/bin
+XTENSA_TOOLS_ROOT ?= $(XTENSA_ROOT)/xtensa-lx106-elf/bin
 #/opt/Espressif/crosstool-NG/builds/xtensa-lx106-elf/bin
 
 # base directory of the ESP8266 SDK package, absolute
-SDK_BASE	?= /home/samuel/programme/esp-open-sdk/sdk
+SDK_BASE	?= $(XTENSA_ROOT)/sdk
 #/opt/Espressif/ESP8266_SDK
 
 # esptool.py path and port
-ESPTOOL		?= /usr/bin/esptool.py
+ESPTOOL		?= $(shell which esptool.py)
 ESPPORT		?= /dev/ttyUSB1
-#ESPBAUD		?= 912600
+ESPBAUD		?= 912600
 #ESPBAUD		?= 230400
-ESPBAUD		?= 115200
+#ESPBAUD		?= 115200
 
 # name for the target project
 TARGET		= app
@@ -79,10 +83,8 @@ BUILD_DIR	:= $(addprefix $(BUILD_BASE)/,$(MODULES))
 SDK_LIBDIR	:= $(addprefix $(SDK_BASE)/,$(SDK_LIBDIR))
 SDK_INCDIR	:= $(addprefix -I$(SDK_BASE)/,$(SDK_INCDIR))
 
-SRC			:= $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.c*))
-C_OBJ		:= $(patsubst %.c,%.o,$(SRC))
-CXX_OBJ		:= $(patsubst %.cpp,%.o,$(C_OBJ))
-OBJ			:= $(patsubst %.o,$(BUILD_BASE)/%.o,$(CXX_OBJ))
+SRC			:= $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.c))
+OBJ			:= $(patsubst %.c,$(BUILD_BASE)/%.o,$(SRC))
 LIBS		:= $(addprefix -l,$(LIBS))
 APP_AR		:= $(addprefix $(BUILD_BASE)/,$(TARGET)_app.a)
 TARGET_OUT	:= $(addprefix $(BUILD_BASE)/,$(TARGET).out)
@@ -106,18 +108,12 @@ vecho := @echo
 endif
 
 vpath %.c   $(SRC_DIR)
-vpath %.cpp $(SRC_DIR)
 
 define compile-objects
 $1/%.o: %.c
 	$(vecho) "CC $$<"
-	$(Q) $(CXX) $(INCDIR) $(MODULE_INCDIR) $(EXTRA_INCDIR) $(SDK_INCDIR) $(CXXFLAGS) -c $$< -o $$@
-$1/%.o: %.cpp
-	$(vecho) "CXX $$<"
-	$(Q) $(CXX) $(INCDIR) $(MODULE_INCDIR) $(EXTRA_INCDIR) $(SDK_INCDIR) $(CXXFLAGS) -c $$< -o $$@
+	$(Q) $(CC) $(INCDIR) $(MODULE_INCDIR) $(EXTRA_INCDIR) $(SDK_INCDIR) $(CFLAGS) -c $$< -o $$@
 endef
-
-$(info incdirs: [${INCDIR}])
 
 .PHONY: all checkdirs flash clean
 
@@ -144,16 +140,10 @@ $(FW_BASE):
 	$(Q) mkdir -p $@
 
 flash: $(FW_FILE_1) $(FW_FILE_2)
-	-killall minicom
-	$(ESPTOOL) --after soft_reset --port $(ESPPORT) --baud $(ESPBAUD) write_flash $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
+	$(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash --verify $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
 
-verify: $(FW_FILE_1) $(FW_FILE_2)
-	-killall minicom
-	$(ESPTOOL) --after soft_reset --port $(ESPPORT) --baud $(ESPBAUD) verify_flash $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
-
-terminal:
-	stty -F $(ESPPORT) $(ESPBAUD) raw
-	cat $(ESPPORT)
+term: flash
+	python -m serial.tools.miniterm --rts 0 --dtr 0 $(ESPPORT) 74880
 
 clean:
 	$(Q) rm -rf $(FW_BASE) $(BUILD_BASE)
