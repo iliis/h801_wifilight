@@ -55,11 +55,9 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
     #define IS_CMD(str) (strncmp(inputstr, (str), MIN(strlen((str)), len)) == 0)
     #define IS_CHAR_CMD(c)  (len == 3 && inputstr[0] == (c) && inputstr[1] == '\0')
 
-    #define __RESPONSE(fmt, ...) do { \
-        os_sprintf(outputbuf, "%s" fmt "\n", outputbuf, __VA_ARGS__); \
+    #define RESPONSE(fmt, ...) do { \
+        os_sprintf(outputbuf, "%s" fmt "\n", outputbuf, ##__VA_ARGS__); \
     } while(0)
-
-    #define RESPONSE(...)  __RESPONSE(__VA_ARGS__, 0)
 
 
     if (IS_CMD("help")) {
@@ -100,8 +98,19 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
                 simple_localtime(current_alarm_time, &tm_alarm);
                 RESPONSE("alarm set:    %d:%02d.%02d", tm_alarm.Hour, tm_alarm.Minute, tm_alarm.Second);
 
-                simple_localtime(current_alarm_time - stamp, &tm_alarm);
-                RESPONSE("this is in: %d:%02d.%02d", tm_alarm.Hour, tm_alarm.Minute, tm_alarm.Second);
+                int64_t diff = ((int64_t)current_alarm_time) - stamp;
+
+                os_printf("[ALARM] raw diff: %lld\n", diff);
+
+                int secs = diff % 60;
+                diff -= secs;
+                diff /= 60;
+
+                int minutes = diff % 60;
+                diff -= minutes;
+                diff /= 60;
+
+                RESPONSE ("this is in: %d h %d m %d s", (int) diff, minutes, secs);
 
                 if (repeat_alarm == 0) {
                     RESPONSE("alarm will NOT be repeated");
@@ -221,6 +230,9 @@ void alarm_timer_func(void *arg)
         if (current_alarm_time <= stamp) {
             // alarm goes off!
             start_animation(mkanim_sunset(anim_duration), 1);
+
+            // go to next day
+            current_alarm_time += SECS_PER_DAY;
 
             if (repeat_alarm == 0) {
                 // don't repeat

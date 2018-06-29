@@ -41,3 +41,4 @@ TODO
 - higher PWM resolution
 - add physical touch buttons (for on/off, FAD, red night-light, ...)
 - http://www.instructables.com/id/FADing-Fall-Asleep-Device/
+- add build info to help or welcome message

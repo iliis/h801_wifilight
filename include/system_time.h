@@ -13,6 +13,8 @@
  * different numbers, especially if RTC_value is large.
  *
  * Therefore we periodically add the current change of the RTC to our own time counter.
+ *
+ * Also, this guarantees a monotonically increasing timestamp.
  */
 
 uint64 ICACHE_FLASH_ATTR get_system_time_us();

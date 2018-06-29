@@ -130,8 +130,7 @@ void ICACHE_FLASH_ATTR exec_animation(Animation* anim)
 // global state
 Animation* current_animation = NULL;
 bool cur_anim_autodelete = 0;
-
-int64_t last_timestamp = 0;
+uint64_t last_timestamp_ms = 0;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -140,20 +139,14 @@ static os_timer_t animation_timer;
 void animation_timer_func(void * unused) {
     if (current_animation && current_animation->running) {
 
-        uint64_t t = system_get_rtc_time();
+        uint64_t t = get_system_time_us() / 1000; // convert to miliseconds
 
-        uint32 rtc_us = system_rtc_clock_cali_proc(); // us per RTC cycle
-
-        uint64 localt = (uint32) (t - last_timestamp); // uint32 so it handles overflows correctly
-        localt *= rtc_us >> 12;
-        localt /= 1000; // convert to miliseconds
-
+        uint64_t deltaT = t - last_timestamp_ms; // system_time is guaranteed to be monotonic, so this is safe
+        last_timestamp_ms = t;
 
         // TODO: calculate deltaT
         exec_animation(current_animation);
-        tick_animation(current_animation, localt);
-
-        last_timestamp = t;
+        tick_animation(current_animation, deltaT);
 
     } else {
         if (current_animation)
@@ -172,18 +165,21 @@ void ICACHE_FLASH_ATTR start_animation(Animation* anim, bool autodelete)
     stop_current_animation();
 
     if (anim) {
+        os_printf("[ANIM] start\n");
         current_animation = anim;
         current_animation->current_pos = 0;
         current_animation->running = 1;
         cur_anim_autodelete = autodelete;
 
-        last_timestamp = system_get_rtc_time();
+        last_timestamp_ms = get_system_time_us() / 1000;
 
         //Setup timer
         os_timer_setfn(&animation_timer, (os_timer_func_t *)animation_timer_func, NULL);
 
         //Arm the timer
-        os_timer_arm(&animation_timer, 10, 1); // execute all 10 ms
+        os_timer_arm(&animation_timer, 10, 1); // execute every 10 ms
+    } else {
+        os_printf("[ANIM] not starting NULL anim\n");
     }
 }
 

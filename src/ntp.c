@@ -217,7 +217,7 @@ void ICACHE_FLASH_ATTR ntp_rx_packet(void * arg, char* data, unsigned short len)
     uint64 internal_time = get_internal_time();
 
     os_printf("[NTP] raw system time: %llu s\n", internal_time);
-    os_printf("[NTP] delta: %lld sec\n", RTCdelta);
+    os_printf("[NTP] RTCdelta: %lld sec\n", RTCdelta);
 
     if (RTCdelta == INT64_MAX) {
         RTCdelta = ((int64_t) ntp_time) - internal_time;

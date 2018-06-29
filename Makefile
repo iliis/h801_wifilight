@@ -142,7 +142,7 @@ $(FW_BASE):
 flash: $(FW_FILE_1) $(FW_FILE_2)
 	$(ESPTOOL) --port $(ESPPORT) --baud $(ESPBAUD) write_flash --verify $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
 
-term: flash
+term:
 	python -m serial.tools.miniterm --rts 0 --dtr 0 $(ESPPORT) 74880
 
 clean:
