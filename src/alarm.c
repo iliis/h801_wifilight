@@ -8,6 +8,7 @@
 int timezone_offset = 2; // MESZ ;)
 time_t current_alarm_time = 0; // absolute timestamp when next alarm should go off (i.e. in seconds since 1900)
 int repeat_alarm = 0; // number of times to repeat alarm (-1 = inf)
+int repeat_alarm_drift = 0; // seconds to add to alarm when repeating it (i.e. -5*60 would start the alarm 5 minutes earlier every day)
 
 unsigned int anim_duration = 30 * 60; // animate over half an hour
 
@@ -67,6 +68,7 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
                 "set_tz $offset     - set timezone offset relative to UTC\n"
                 "set_alarm $h $m    - arm alarm\n"
                 "repeat $n          - number of repetitions (0=none, -1=inf)\n"
+                "drift $m $s        - shift alarm every day by a bit\n"
                 "clr_alarm          - disable alarm\n"
                 "ntp                - query NTP server to update time\n"
                 "quit               - close this TCP session\n"
@@ -119,6 +121,10 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
                 } else {
                     RESPONSE("alarm will be repeated indefinitely");
                 }
+
+                if (repeat_alarm != 0 && repeat_alarm_drift != 0) {
+                    RESPONSE("and will drift every day by %d seconds", repeat_alarm_drift);
+                }
             }
         }
 
@@ -153,7 +159,16 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
     } else if (IS_CMD("repeat")) {
         char * tmp;
         repeat_alarm = strtol(&inputstr[6], &tmp, 0);
-        RESPONSE("alarm repetition count set to: %ld", repeat_alarm);
+        RESPONSE("alarm repetition count set to: %d", repeat_alarm);
+
+    } else if (IS_CMD("drift")) {
+        char * tmp;
+        int minutes = strtol(&inputstr[5], &tmp, 0);
+        int seconds = strtol(tmp, NULL, 0);
+
+        repeat_alarm_drift = minutes*SECS_PER_MIN + seconds;
+
+        RESPONSE("alarm drift set to: %d seconds", repeat_alarm_drift);
 
     } else if (IS_CMD("clr_alarm")) {
         current_alarm_time = 0;
@@ -191,7 +206,7 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
 
     // append PROMPT without trailing newline
     os_sprintf(outputbuf, "%s" PROMPT, outputbuf);
-    espconn_send(conn, outputbuf, strlen(outputbuf));
+    espconn_send(conn, (unsigned char*)outputbuf, strlen(outputbuf));
 }
 
 /* not really required
@@ -233,6 +248,7 @@ void alarm_timer_func(void *arg)
 
             // go to next day
             current_alarm_time += SECS_PER_DAY;
+            current_alarm_time += repeat_alarm_drift;
 
             if (repeat_alarm == 0) {
                 // don't repeat
