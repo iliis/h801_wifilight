@@ -9,6 +9,11 @@ Wiring with those red FT1232 clones:
 
     TX - TX
     RX - RX
+    GND - GND
+
+Baud rate: 74880 (same as bootloader)
+
+Use 'make term' to run miniterm.
 
 
 setup
@@ -17,9 +22,9 @@ setup
 - solder some pinheaders onto serial pins and a jumper onto the other two bootloader selection pins
   consult https://eryk.io/2015/10/esp8266-based-wifi-rgb-controller-h801/ for details
 
-- install Espressif SDK via https://github.com/pfalcon/esp-open-sdk
+- install Espressif SDK via https://github.com/pfalcon/esp-open-sdk (takes ~25 minutes to build!)
 
-- update paths in Makefile
+- update paths in Makefile (or add SDK to $PATH), adjust /dev/ttyUSBx path
 
 - create src/user_config.h with
 
@@ -31,6 +36,10 @@ setup
         make flash
 
 
+usage
+-----
+
+telnet $IP 1
 
 
 TODO
