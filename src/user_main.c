@@ -279,6 +279,7 @@ user_init()
 
     LED_server_start(444);
 
+    // start telnet interface
     alarm_server_init(1);
 
     // this doesn't, it *does* boot into bootloader but then flashing fails

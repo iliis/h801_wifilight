@@ -73,7 +73,7 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
                 "ntp                - query NTP server to update time\n"
                 "quit               - close this TCP session\n"
                 "help               - print this information ;)");
-    } else if (IS_CMD("set_tz")) {
+    } else if (IS_CMD("set_tz") || IS_CMD("settz") || IS_CMD("tz")) {
         // TODO: implement error handling correctly
         errno = 0; char * tmp;
         int offset = strtol(&inputstr[6], &tmp, 0);
@@ -128,7 +128,7 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
             }
         }
 
-    } else if (IS_CMD("set_alarm")) {
+    } else if (IS_CMD("set_alarm") || IS_CMD("setalarm") || IS_CMD("alarm")) {
         tmElements_t tm_now; time_t stamp;
         if (!getLocalTimeStruct(&tm_now, &stamp)) {
             RESPONSE("cannot set alarm: NTP not running, time unknown.");
@@ -170,12 +170,14 @@ void ICACHE_FLASH_ATTR alarm_server_rx(void * arg, char* data, unsigned short le
 
         RESPONSE("alarm drift set to: %d seconds", repeat_alarm_drift);
 
-    } else if (IS_CMD("clr_alarm")) {
+    } else if (IS_CMD("clr_alarm") || IS_CMD("clralarm") || IS_CMD("clr")) {
         current_alarm_time = 0;
         stop_current_animation();
         RESPONSE("alarm disarmed");
 
     } else if (IS_CMD("led")) {
+
+        stop_current_animation();
 
         uint8_t rgbww[5] = {0,0,0, 0,0};
 
