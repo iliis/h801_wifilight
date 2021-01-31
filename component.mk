@@ -3,6 +3,10 @@
 
 #SMING_ARCH=Esp8266
 
+#COM_SPEED=74480 # same as bootloader
+COM_SPEED=115200
+COM_SPEED_ESPTOOL=576000
+
 # only build code in this folder
 COMPONENT_APPCODE=app
 
@@ -18,3 +22,10 @@ SPIFF_SIZE=0x15000
 # otherwise the build system tries to put it at 0x100000, i.e. exactly at the end of the flash
 # no idea why this is the default behaviour O.o
 RBOOT_SPIFFS_0=0x80000
+
+
+# set DTR and RTS high (= deassert = 0), so chip boots normally
+TERMINAL=python3 -m serial.tools.miniterm --encoding ascii /dev/ttyUSB0 115200 --dtr 0 --rts 0
+
+
+ARDUINO_LIBRARIES=Timezone

@@ -2,4 +2,7 @@
 *.bin
 build/
 firmware/
-src/user_config.h
+app/user_config.hpp
+out/
+compile_commands.json
+.cache
