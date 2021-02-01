@@ -7,10 +7,9 @@ class Clock
 {
 public:
 
-    // Automatically update system clock through NTP every 30 seconds
-    // TODO: when deployed, we don't need to and shouldn't update this fast, increase to 10min+
     Clock()
-      : ntp_client("ch.pool.ntp.org", 30, NtpTimeResultDelegate(&Clock::on_ntp_update, this))
+        // Automatically update system clock through NTP every 20 minutes
+      : ntp_client("ch.pool.ntp.org", 20*60, NtpTimeResultDelegate(&Clock::on_ntp_update, this))
     {
     }
 

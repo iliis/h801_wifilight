@@ -1,9 +1,43 @@
 <html>
 <head>
     <title>WiFiLight</title>
+    <style>
+        button {
+            width: 100%;
+            height: 30%;
+            font-size: 10vw;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
     <h1>WiFiLight</h1>
-    Yaay :)
+
+    <form action="led" method="POST">
+        <input type="hidden" name="R" value="255" />
+        <input type="hidden" name="G" value="255" />
+        <input type="hidden" name="B" value="255" />
+        <input type="hidden" name="W1" value="255" />
+        <input type="hidden" name="W2" value="255" />
+        <button type="submit">ON</button>
+    </form>
+
+    <form action="led" method="POST">
+        <input type="hidden" name="R" value="0" />
+        <input type="hidden" name="G" value="0" />
+        <input type="hidden" name="B" value="0" />
+        <input type="hidden" name="W1" value="0" />
+        <input type="hidden" name="W2" value="0" />
+        <button type="submit">OFF</button>
+    </form>
+
+    <form action="led" method="POST">
+        <input type="hidden" name="R" value="255" />
+        <input type="hidden" name="G" value="0" />
+        <input type="hidden" name="B" value="0" />
+        <input type="hidden" name="W1" value="0" />
+        <input type="hidden" name="W2" value="0" />
+        <button type="submit">RED</button>
+    </form>
 </body>
 </html>

@@ -15,6 +15,7 @@ private:
 
     void on_index(HttpRequest& request, HttpResponse& response);
     void on_file(HttpRequest& request, HttpResponse& response);
+    void on_set(HttpRequest& request, HttpResponse& response);
 
 private:
     HttpServer server;

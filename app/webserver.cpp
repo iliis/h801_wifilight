@@ -1,7 +1,9 @@
 #include "webserver.hpp"
 #include "FileSystem.h"
+#include "Network/Http/HttpCommon.h"
 #include "Network/Http/HttpResource.h"
 #include "Network/Http/HttpResourceTree.h"
+#include "led.hpp"
 
 Webserver::Webserver()
 {
@@ -13,6 +15,7 @@ void Webserver::start()
     server.listen(80);
 
     server.paths.set("/", HttpPathDelegate(&Webserver::on_index, this));
+    server.paths.set("/led", HttpPathDelegate(&Webserver::on_set, this));
     server.paths.setDefault(HttpPathDelegate(&Webserver::on_file, this));
 
     debugf("started webserver");
@@ -46,3 +49,18 @@ void Webserver::on_file(HttpRequest& request, HttpResponse& response)
     }
 }
 
+void Webserver::on_set(HttpRequest& request, HttpResponse& response)
+{
+    int R  = request.getPostParameter("R").toInt();
+    int G  = request.getPostParameter("G").toInt();
+    int B  = request.getPostParameter("B").toInt();
+    int W1 = request.getPostParameter("W1").toInt();
+    int W2 = request.getPostParameter("W2").toInt();
+
+    debugf("got POST: %d.%d.%d.%d.%d", R, G, B, W1, W2);
+
+    LED::set(R,G,B,W1,W2);
+
+    response.code = HTTP_STATUS_FOUND;
+    response.setHeader("Location", "/");
+}
