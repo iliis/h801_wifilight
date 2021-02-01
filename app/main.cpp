@@ -5,50 +5,29 @@
 #include "Platform/Station.h"
 #include "led.hpp"
 #include "clock.hpp"
+#include "spiffs_sming.h"
 #include "user_config.hpp"
+#include "webserver.hpp"
 
 
-enum ApplicationState
-{
-    BOOTING,
-    CONNECTING,
-    WAITING_FOR_NTP,
-    READY,
-    FAILED
-} app_state = BOOTING;
+Clock app_clock;
+Webserver server;
 
-
-
-/*
-void onTimeReceived(NtpClient& ntp, time_t timestamp)
-{
-    if (app_state != READY)
-    {
-        debugf("Successfully received time update");
-        app_state = READY;
-        LED::set(0,0,0,0,0);
-    }
-}
-*/
 
 void gotIP(IpAddress ip, IpAddress netmask, IpAddress gateway)
 {
     debugf("Successfully connected to WiFi: My IP is %s", ip.toString().c_str());
 
-    app_state = WAITING_FOR_NTP;
     LED::set(0,255,0,0,0); // green: connection successfull, waiting for NTP
+    server.start();
 }
 
 void internetFail(const String& SSID, MacAddress BSSID, WifiDisconnectReason reason)
 {
     debugf("Failed to connect to %s: %s", SSID.c_str(), WifiEvents.getDisconnectReasonDesc(reason).c_str());
 
-    app_state = FAILED;
     LED::set(255,0,0,0,0);
 }
-
-
-Clock app_clock;
 
 void init()
 {
@@ -61,7 +40,12 @@ void init()
     Serial.systemDebugOutput(true); // Enable debug output to serial
     //Serial.write("FooBar!\n");
 
-    debugf("Hallo Welt");
+    // enable filesystem
+    if (spiffs_mount()) {
+        debugf("successfully mounted SPIFFS filessytem");
+    } else {
+        debugf("FAILED TO MOUNT SPIFFS FILESYSTEM");
+    }
 
     LED::set(255,155,0,0,0); // orange: waiting for wifi
     //LED::set(0,0,255,0,0);
@@ -71,6 +55,4 @@ void init()
 
     WifiEvents.onStationDisconnect(internetFail);
     WifiEvents.onStationGotIP(gotIP);
-
-    app_state = CONNECTING;
 }
