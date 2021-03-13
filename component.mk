@@ -11,18 +11,7 @@ COM_SPEED_ESPTOOL=576000
 COMPONENT_APPCODE=app
 
 # for my h801 module:
-#DISABLE_SPIFFS = 1
-SPI_SIZE=1M
-#SPI_SIZE=512K
-#SPIFF_SIZE=131072
-SPIFF_SIZE=0x10000
 SPIFF_FILES=files
-
-# move file system closer to beginning, so it actually fits inside 1M
-# otherwise the build system tries to put it at 0x100000, i.e. exactly at the end of the flash
-# no idea why this is the default behaviour O.o
-# see https://github.com/SmingHub/Sming/issues/2209
-RBOOT_SPIFFS_0=0xE0000
 
 
 # set DTR and RTS high (= deassert = 0), so chip boots normally

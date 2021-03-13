@@ -49,15 +49,38 @@ setup
 
 - update paths in Makefile
 
-- create src/user_config.h with
+- create app/user_config.hpp with
 
-        #define SSID            "your SSID here"
-        #define SSID_PASSWORD   "your password here"
+    #define CFG_SSID            "your SSID here"
+    #define CFG_SSID_PASSWORD   "your password here"
 
 - build and flash
 
-        make flash
+   make flash
 
+
+
+run on host
+-----------
+
+    # create a virtual network device
+    ./setup_host_networking.sh
+
+    # remove any old configs
+    make dist-clean
+    make config-clean
+
+    # build framework
+    make SMING_ARCH=Host -j8
+
+    # enable SPIFFS
+    make hwconfig HWCONFIG=spiffs
+
+    # fake-flash it
+    make flash
+
+    # run it
+    make run
 
 
 

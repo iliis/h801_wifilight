@@ -2,6 +2,7 @@
 #include <HardwareSerial.h>
 #include <Platform/WifiEvents.h>
 
+#include "util.hpp"
 #include "Platform/Station.h"
 #include "led.hpp"
 #include "clock.hpp"
@@ -9,14 +10,13 @@
 #include "user_config.hpp"
 #include "webserver.hpp"
 
-
 Clock app_clock;
 Webserver server;
 
 
 void gotIP(IpAddress ip, IpAddress netmask, IpAddress gateway)
 {
-    debugf("Successfully connected to WiFi: My IP is %s", ip.toString().c_str());
+    LOG(NET, "Successfully connected to WiFi: My IP is %s", ip.toString().c_str());
 
     LED::set(0,255,0,0,0); // green: connection successfull, waiting for NTP
     server.start();
@@ -24,7 +24,7 @@ void gotIP(IpAddress ip, IpAddress netmask, IpAddress gateway)
 
 void internetFail(const String& SSID, MacAddress BSSID, WifiDisconnectReason reason)
 {
-    debugf("Failed to connect to %s: %s", SSID.c_str(), WifiEvents.getDisconnectReasonDesc(reason).c_str());
+    ERROR(NET, "Failed to connect to %s: %s", SSID.c_str(), WifiEvents.getDisconnectReasonDesc(reason).c_str());
 
     LED::set(255,0,0,0,0);
 }
@@ -40,15 +40,20 @@ void init()
     Serial.systemDebugOutput(true); // Enable debug output to serial
     //Serial.write("FooBar!\n");
 
+    LOG(APP, "initializing...");
+    LOG(APP, "mounting SPIFFS");
+
     // enable filesystem
     if (spiffs_mount()) {
-        debugf("successfully mounted SPIFFS filessytem");
+        LOG(APP, "successfully mounted SPIFFS filessytem");
     } else {
-        debugf("FAILED TO MOUNT SPIFFS FILESYSTEM");
+        ERROR(APP, "Failed to mount SPIFFS filesystem");
     }
 
     LED::set(255,155,0,0,0); // orange: waiting for wifi
     //LED::set(0,0,255,0,0);
+
+    LOG(APP, "enabling WiFi");
 
     WifiStation.enable(true);
     WifiStation.config(CFG_SSID, CFG_SSID_PASSWORD);
