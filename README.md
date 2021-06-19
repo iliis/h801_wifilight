@@ -39,15 +39,30 @@ Setting afterwards somehow does NOT work:
     Serial.setTx(2);
 
 
-setup
+setup (sming)
+-------------
+
+Download and install [Sming](https://sming.readthedocs.io/en/latest/getting-started/index.html) framework:
+
+    git clone https://github.com/SmingHub/Sming /opt/sming
+    source /opt/sming/Tools/install.sh 8266 # or 'all'
+    export SMING_HOME=/opt/sming/Sming
+    source $SMING_HOME/../Tools/export.sh
+
+In this project's folder:
+
+    make
+
+
+setup (deprecated)
 -----
 
 - solder some pinheaders onto serial pins and a jumper onto the other two bootloader selection pins
   consult https://eryk.io/2015/10/esp8266-based-wifi-rgb-controller-h801/ for details
 
-- install Espressif SDK via https://github.com/pfalcon/esp-open-sdk
+//- install Espressif SDK via https://github.com/pfalcon/esp-open-sdk
 
-- update paths in Makefile
+//- update paths in Makefile
 
 - create app/user_config.hpp with
 

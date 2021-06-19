@@ -16,8 +16,8 @@
 #define COLOR_BOLD      "\033[1m"
 
 // stringify macro
-#define __STRINGIFY(x) #x
-#define STRINGIFY(x) __STRINGIFY(x)
+#define __MY_STRINGIFY(x) #x
+#define STRINGIFY(x) __MY_STRINGIFY(x)
 
 // very basic logging
 #define LOG(tag, ...)   debugf(COLOR_GREY "[" STRINGIFY(tag) "] " COLOR_RESET __VA_ARGS__ );

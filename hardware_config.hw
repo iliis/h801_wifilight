@@ -1,0 +1,14 @@
+{
+    "name": "Project H801wifilight config",
+    "base_config": "standard",
+    "options": ["spiffs"],
+    "partitions": {
+        "rom0": {
+            "size": "512K"
+        },
+        "spiffs0": {
+            "address": "0x00082000",
+            "size": "480K"
+        }
+    }
+}

@@ -8,8 +8,17 @@ const TimeChangeRule dst_start = {"MESZ", Last, Sun, Mar, 2, 2*60}; // UTC+2
 const TimeChangeRule std_start = {"MEZ",  Last, Sun, Oct, 3, 1*60}; // UTC+1
 Timezone local_TZ(dst_start, std_start);
 
+
+Clock::Clock()
+// Automatically update system clock through NTP every 20 minutes
+ : ntp_client("ch.pool.ntp.org", 20*60, NtpTimeResultDelegate(&Clock::on_ntp_update, this))
+{
+    debugf("initialized NTP");
+}
+
 void Clock::on_ntp_update(NtpClient& ntp, time_t timestamp)
 {
+    debugf("received NTP update");
     static bool first_update = true;
 
     /*

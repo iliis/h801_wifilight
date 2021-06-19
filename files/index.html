@@ -7,8 +7,37 @@
             height: 30%;
             font-size: 10vw;
             font-weight: bold;
+
+            border: 1px solid #888a85;
+            border-radius: 3px;
+        }
+        html {
+            font-family: 'sans';
         }
     </style>
+
+    <script src="jquery-3.6.0.min.js"></script>
+
+    <script>
+    function get_config() {
+        $.getJSON('/settings', function(data) {
+            $('#local_time').text(data.local_time);
+
+            // remove warning that we don't have up-to-date info
+            $('#settings_updated').text("");
+
+            console.log("read settings:");
+            console.log(data);
+        });
+    }
+
+    $( document ).ready(function() {
+            get_config();
+
+            //document.getElementById('form_netcfg').addEventListener('submit', post_netcfg);
+            //document.getElementById('netcfg_cancel').addEventListener('click', get_config);
+    });
+    </script>
 </head>
 <body>
     <h1>WiFiLight</h1>
@@ -28,7 +57,7 @@
         <input type="hidden" name="B" value="0" />
         <input type="hidden" name="W1" value="0" />
         <input type="hidden" name="W2" value="0" />
-        <button type="submit">OFF</button>
+        <button type="submit" style="background-color: #2e3436; color: #eeeeec">OFF</button>
     </form>
 
     <form action="led" method="POST">
@@ -37,7 +66,28 @@
         <input type="hidden" name="B" value="0" />
         <input type="hidden" name="W1" value="0" />
         <input type="hidden" name="W2" value="0" />
-        <button type="submit">RED</button>
+        <button type="submit" style="background-color: #cc0000; color: #eeeeec">RED</button>
+    </form>
+
+    <h2>Settings</h2>
+
+    <form action="settings" method="POST">
+    <div id="settings_updated">Warning: Settings have not been read from device</div>
+    <table>
+        <tr>
+            <td>Local Time:</td>
+            <td id="local_time">???</td>
+        </tr>
+        <tr>
+            <td><label for="alarm_enabled">Alarm Enabled:</label></td>
+            <td><input id="alarm_enabled" type="checkbox"></td>
+        </tr>
+        <tr>
+            <td><label for="alarm_time">Alarm Time:</label></td>
+            <td><input id="alarm_time" type="time"></td>
+        </tr>
+    </table>
+    <button type="submit" style="background-color: #8ae234; height: 10%; font-size: 3vw">SAVE</button>
     </form>
 </body>
 </html>

@@ -6,13 +6,12 @@
 #include "Platform/Station.h"
 #include "led.hpp"
 #include "clock.hpp"
-#include "spiffs_sming.h"
 #include "user_config.hpp"
 #include "webserver.hpp"
 
-Clock app_clock;
-Webserver server;
-
+Configuration config;
+Clock* app_clock = nullptr;
+Webserver server(config);
 
 void gotIP(IpAddress ip, IpAddress netmask, IpAddress gateway)
 {
@@ -20,6 +19,7 @@ void gotIP(IpAddress ip, IpAddress netmask, IpAddress gateway)
 
     LED::set(0,255,0,0,0); // green: connection successfull, waiting for NTP
     server.start();
+    app_clock = new Clock();
 }
 
 void internetFail(const String& SSID, MacAddress BSSID, WifiDisconnectReason reason)
