@@ -7,10 +7,10 @@
 #include <Network/Http/HttpResourceTree.h>
 
 #include "led.hpp"
-#include "configuration.hpp"
+#include "application.hpp"
 
-Webserver::Webserver(Configuration& global_config)
-  : global_config(global_config)
+Webserver::Webserver(Application& app)
+  : app(app)
 {
 }
 
@@ -100,14 +100,14 @@ void Webserver::on_get_config(HttpRequest& request, HttpResponse& response)
     JsonObjectStream* stream = new JsonObjectStream();
     JsonObject json = stream->getRoot();
 
-    global_config.writeToJson(json);
+    app.writeToJson(json);
 
     response.sendDataStream(stream, MIME_JSON);
 }
 
 void Webserver::on_set_config(HttpRequest& request, HttpResponse& response)
 {
-    global_config.setFromHttpPost(request);
+    app.setFromHttpPost(request);
 
     response.code = HTTP_STATUS_FOUND;
     response.setHeader("Location", "/");

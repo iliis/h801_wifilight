@@ -44,6 +44,9 @@ namespace LED
 uint8_t pins[5] = {redPIN, greenPIN, bluePIN, w1PIN, w2PIN}; // List of pins that you want to connect to pwm
 HardwarePWM HW_pwm(pins, 5);
 
+ // remember state so we can query it later
+uint8_t state[5] = { 0 };
+
 int MAX_PWM_DUTYCYCLE = HW_pwm.getMaxDuty();
 
 uint16_t gamma(uint8_t input, float gamma)
@@ -60,11 +63,20 @@ void set(const std::array<uint8_t, 5>& rgbww)
 {
     for (int i = 0; i < sizeof(pins); i++) {
         HW_pwm.analogWrite(pins[i], gamma(rgbww[i]));
+        state[i] = rgbww[i];
         //HW_pwm.analogWrite(pins[i], rgbww[i]);
     }
 
     //debugf("pwm max duty: %d", MAX_PWM_DUTYCYCLE);
     //debugf("gamma(%d) = %d", rgbww[0], gamma(rgbww[0]));
+}
+
+uint8_t get(int idx)
+{
+    if (idx >= 0 and idx < 5)
+        return state[idx];
+    else
+        return 0;
 }
 
 } // namespace LED

@@ -4,12 +4,12 @@
 #include <Network/Http/HttpResponse.h>
 #include <SmingCore.h>
 
-#include "configuration.hpp"
+class Application; // forward def
 
 class Webserver
 {
 public:
-    Webserver(Configuration& global_config);
+    Webserver(Application& app);
 
     void start();
 
@@ -25,5 +25,5 @@ private:
 
 private:
     HttpServer server;
-    Configuration& global_config;
+    Application& app;
 };

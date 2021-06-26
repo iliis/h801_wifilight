@@ -1,10 +1,17 @@
 <html>
 <head>
     <title>WiFiLight</title>
+    <link rel="stylesheet" href="pure-min.css" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">
+
     <style>
-        button {
-            width: 100%;
-            height: 30%;
+        button.big {
+            margin: 2%;
+            width: 96%;
             font-size: 10vw;
             font-weight: bold;
 
@@ -22,6 +29,12 @@
     function get_config() {
         $.getJSON('/settings', function(data) {
             $('#local_time').text(data.local_time);
+
+            $('#custom-r').val(data.color.red);
+            $('#custom-g').val(data.color.green);
+            $('#custom-b').val(data.color.blue);
+            $('#custom-w1').val(data.color.white1);
+            $('#custom-w2').val(data.color.white2);
 
             // remove warning that we don't have up-to-date info
             $('#settings_updated').text("");
@@ -42,52 +55,97 @@
 <body>
     <h1>WiFiLight</h1>
 
-    <form action="led" method="POST">
-        <input type="hidden" name="R" value="255" />
-        <input type="hidden" name="G" value="255" />
-        <input type="hidden" name="B" value="255" />
-        <input type="hidden" name="W1" value="255" />
-        <input type="hidden" name="W2" value="255" />
-        <button type="submit">ON</button>
-    </form>
+    <div class="pure-g">
 
-    <form action="led" method="POST">
-        <input type="hidden" name="R" value="0" />
-        <input type="hidden" name="G" value="0" />
-        <input type="hidden" name="B" value="0" />
-        <input type="hidden" name="W1" value="0" />
-        <input type="hidden" name="W2" value="0" />
-        <button type="submit" style="background-color: #2e3436; color: #eeeeec">OFF</button>
-    </form>
+        <div class="pure-u-1-2">
+            <form action="led" method="POST">
+                <input type="hidden" name="R" value="255" />
+                <input type="hidden" name="G" value="255" />
+                <input type="hidden" name="B" value="255" />
+                <input type="hidden" name="W1" value="255" />
+                <input type="hidden" name="W2" value="255" />
+                <button type="submit" class="big">ON</button>
+            </form>
+        </div>
 
-    <form action="led" method="POST">
-        <input type="hidden" name="R" value="255" />
-        <input type="hidden" name="G" value="0" />
-        <input type="hidden" name="B" value="0" />
-        <input type="hidden" name="W1" value="0" />
-        <input type="hidden" name="W2" value="0" />
-        <button type="submit" style="background-color: #cc0000; color: #eeeeec">RED</button>
+        <div class="pure-u-1-2">
+            <form action="led" method="POST">
+                <input type="hidden" name="R" value="0" />
+                <input type="hidden" name="G" value="0" />
+                <input type="hidden" name="B" value="0" />
+                <input type="hidden" name="W1" value="0" />
+                <input type="hidden" name="W2" value="0" />
+                <button type="submit" style="background-color: #2e3436; color: #eeeeec" class="big">OFF</button>
+            </form>
+        </div>
+
+    </div>
+
+    <div class="pure-g">
+
+        <div class="pure-u-1-2">
+            <form action="led" method="POST">
+                <input type="hidden" name="R" value="255" />
+                <input type="hidden" name="G" value="0" />
+                <input type="hidden" name="B" value="0" />
+                <input type="hidden" name="W1" value="0" />
+                <input type="hidden" name="W2" value="0" />
+                <button type="submit" style="background-color: #cc0000; color: #eeeeec" class="big">RED</button>
+            </form>
+        </div>
+
+        <div class="pure-u-1-2">
+            <form action="led" method="POST">
+                <input type="hidden" name="R" value="186" />
+                <input type="hidden" name="G" value="139" />
+                <input type="hidden" name="B" value="95" />
+                <input type="hidden" name="W1" value="69" />
+                <input type="hidden" name="W2" value="0" />
+                <button type="submit" style="background-color: #fdb; color: #2e3436" class="big">warm</button>
+            </form>
+        </div>
+
+    </div>
+
+    <h2>Custom Color</h2>
+    <form action="led" method="POST" class="pure-form pure-form-aligned">
+        <fieldset>
+            <div class="pure-control-group"><label for="custom-r">Red:    </label><input class="pure-input-1-2" type="range" min="0" max="255" step="1" value="100" name="R" id="custom-r" /></div>
+            <div class="pure-control-group"><label for="custom-g">Green:  </label><input class="pure-input-1-2" type="range" min="0" max="255" step="1" value="100" name="G" id="custom-g" /></div>
+            <div class="pure-control-group"><label for="custom-b">Blue:   </label><input class="pure-input-1-2" type="range" min="0" max="255" step="1" value="100" name="B" id="custom-b" /></div>
+            <div class="pure-control-group"><label for="custom-w1">White 1:</label><input class="pure-input-1-2" type="range" min="0" max="255" step="1" value="100" name="W1" id="custom-w1" /></div>
+            <div class="pure-control-group"><label for="custom-w2">White 2:</label><input class="pure-input-1-2" type="range" min="0" max="255" step="1" value="100" name="W2" id="custom-w2" /></div>
+        </fieldset>
+        <div class="pure-controls">
+            <button type="submit" class="pure-button pure-input-1-2 pure-button-primary">set</button>
+        </div>
     </form>
 
     <h2>Settings</h2>
 
-    <form action="settings" method="POST">
     <div id="settings_updated">Warning: Settings have not been read from device</div>
-    <table>
-        <tr>
-            <td>Local Time:</td>
-            <td id="local_time">???</td>
-        </tr>
-        <tr>
-            <td><label for="alarm_enabled">Alarm Enabled:</label></td>
-            <td><input id="alarm_enabled" type="checkbox"></td>
-        </tr>
-        <tr>
-            <td><label for="alarm_time">Alarm Time:</label></td>
-            <td><input id="alarm_time" type="time"></td>
-        </tr>
-    </table>
-    <button type="submit" style="background-color: #8ae234; height: 10%; font-size: 3vw">SAVE</button>
+    <br />
+
+    <form action="settings" method="POST" class="pure-form pure-form-aligned">
+        <div class="pure-control-group">
+            <label for="local_time">Local Time:</label>
+            <span id="local_time">???</span>
+        </div>
+        <div class="pure-control-group">
+            <label for="alarm_enabled">Alarm Enabled:</label>
+            <input id="alarm_enabled" type="checkbox">
+        </div>
+        <div class="pure-control-group">
+            <label for="alarm_time">Alarm Time:</label>
+            <input id="alarm_time" type="time">
+        </div>
+        <div class="pure-control-group">
+            <label for="alarm_auto_off">Alarm Auto Off:</label>
+            <input id="alarm_auto_off" type="checkbox">
+        </div>
+        <div class="pure-controls">
+            <button type="submit" class="pure-button pure-input-1-2 pure-button-primary">set</button>
+        </div>
     </form>
 </body>
 </html>
